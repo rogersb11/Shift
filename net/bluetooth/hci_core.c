@@ -1542,10 +1542,11 @@ int hci_register_dev(struct hci_dev *hdev)
 			hdev->rfkill = NULL;
 		}
 	}
-
 	set_bit(HCI_AUTO_OFF, &hdev->flags);
 	set_bit(HCI_SETUP, &hdev->flags);
 	queue_work(hdev->workqueue, &hdev->power_on);
+	hci_notify(hdev, HCI_DEV_REG);
+	hci_dev_hold(hdev);
 
 	hci_notify(hdev, HCI_DEV_REG);
 
@@ -1612,6 +1613,7 @@ int hci_unregister_dev(struct hci_dev *hdev)
 	__hci_dev_put(hdev);
 
 	return 0;
+	hci_dev_put(hdev);
 }
 EXPORT_SYMBOL(hci_unregister_dev);
 

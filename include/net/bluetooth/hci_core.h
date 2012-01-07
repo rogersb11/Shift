@@ -505,16 +505,15 @@ static inline void hci_conn_put(struct hci_conn *conn)
 /* ----- HCI Devices ----- */
 static inline void __hci_dev_put(struct hci_dev *d)
 {
-	if (atomic_dec_and_test(&d->refcnt))
-		d->destruct(d);
+	put_device(&d->dev);
 }
 
 static inline void hci_dev_put(struct hci_dev *d)
 {
-	__hci_dev_put(d);
+	put_device(&d->dev);
 }
 
-static inline struct hci_dev *__hci_dev_hold(struct hci_dev *d)
+static inline struct hci_dev *hci_dev_hold(struct hci_dev *d)
 {
 	atomic_inc(&d->refcnt);
 	return d;
@@ -525,21 +524,8 @@ static inline struct hci_dev *hci_dev_hold(struct hci_dev *d)
 	return __hci_dev_hold(d);
 }
 
-#define hci_dev_lock(d)		spin_lock(&d->lock)
-#define hci_dev_unlock(d)	spin_unlock(&d->lock)
-#define hci_dev_lock_bh(d)	spin_lock_bh(&d->lock)
-#define hci_dev_unlock_bh(d)	spin_unlock_bh(&d->lock)
-
-static inline void *hci_get_drvdata(struct hci_dev *hdev)
-{
-	return dev_get_drvdata(&hdev->dev);
-}
-
-static inline void hci_set_drvdata(struct hci_dev *hdev, void *data)
-{
-	dev_set_drvdata(&hdev->dev, data);
-}
-
+#define hci_dev_lock(d)		mutex_lock(&d->lock)
+#define hci_dev_unlock(d)	mutex_unlock(&d->lock)
 struct hci_dev *hci_dev_get(int index);
 struct hci_dev *hci_get_route(bdaddr_t *src, bdaddr_t *dst);
 

@@ -1102,6 +1102,75 @@ static int hci_outgoing_auth_needed(struct hci_dev *hdev,
 	if (conn->pending_sec_level == BT_SECURITY_SDP)
 		return 0;
 
+	/* for 2.0 pair issue.
+	*without this, connect_cfm is called abnormally. */
+
+	/* Only request authentication for SSP connections or non-SSP
+	 * devices with sec_level HIGH or if MITM protection is requested */
+	if (!hci_conn_ssp_enabled(conn) &&
+				conn->pending_sec_level != BT_SECURITY_HIGH &&
+				!(conn->auth_type & 0x01))
+		return 0;
+
+	return 1;
+}
+
+static inline int hci_resolve_name(struct hci_dev *hdev,
+						struct inquiry_entry *e)
+{
+	struct hci_cp_remote_name_req cp;
+
+	memset(&cp, 0, sizeof(cp));
+
+	bacpy(&cp.bdaddr, &e->data.bdaddr);
+	cp.pscan_rep_mode = e->data.pscan_rep_mode;
+	cp.pscan_mode = e->data.pscan_mode;
+	cp.clock_offset = e->data.clock_offset;
+
+	return hci_send_cmd(hdev, HCI_OP_REMOTE_NAME_REQ, sizeof(cp), &cp);
+}
+
+static bool hci_resolve_next_name(struct hci_dev *hdev)
+{
+	struct discovery_state *discov = &hdev->discovery;
+	struct inquiry_entry *e;
+
+	if (list_empty(&discov->resolve))
+		return false;
+
+	e = hci_inquiry_cache_lookup_resolve(hdev, BDADDR_ANY, NAME_NEEDED);
+
+	if (e != NULL && hci_resolve_name(hdev, e) == 0) {
+		e->name_state = NAME_PENDING;
+		return true;
+	}
+
+	return false;
+}
+
+static void hci_check_pending_name(struct hci_dev *hdev, struct hci_conn *conn,
+					bdaddr_t *bdaddr, u8 *name, u8 name_len)
+{
+	struct discovery_state *discov = &hdev->discovery;
+	struct inquiry_entry *e;
+
+	/* this event is for remote name & class update.actual connected event is sent from hci_conn_complete_evt */
+	if (conn /*&& !test_and_set_bit(HCI_CONN_MGMT_CONNECTED, &conn->flags)*/)
+		mgmt_device_connected(hdev, bdaddr, ACL_LINK, 0x00, 0,
+					name, name_len, conn->dev_class);
+
+	if (discov->state == DISCOVERY_STOPPED)
+		return;
+
+	if (discov->state == DISCOVERY_STOPPING)
+		goto discov_complete;
+
+	if (discov->state != DISCOVERY_RESOLVING)
+		return;
+
+	if (conn->pending_sec_level == BT_SECURITY_SDP)
+		return 0;
+
 	/* Only request authentication for SSP connections or non-SSP
 	 * devices with sec_level HIGH */
 	if (!(hdev->ssp_mode > 0 && conn->ssp_mode > 0) &&

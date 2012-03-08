@@ -887,6 +887,15 @@ static void l2cap_sock_state_change_cb(void *data, int state)
 	sk->sk_state = state;
 }
 
+static struct sk_buff *l2cap_sock_alloc_skb_cb(struct l2cap_chan *chan,
+					       unsigned long len, int nb,
+					       int *err)
+{
+	struct sock *sk = chan->sk;
+
+	return bt_skb_send_alloc(sk, len, nb, err);
+}
+
 static struct l2cap_ops l2cap_chan_ops = {
 	.name		= "L2CAP Socket Interface",
 	.new_connection	= l2cap_sock_new_connection_cb,

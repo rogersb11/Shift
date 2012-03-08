@@ -233,7 +233,332 @@ static u8 check_enc_key_size(struct l2cap_conn *conn, __u8 max_key_size)
 			(max_key_size < SMP_MIN_ENC_KEY_SIZE))
 		return SMP_ENC_KEY_SIZE;
 
-	conn->smp_key_size = max_key_size;
+	smp->enc_key_size = max_key_size;
+
+	return 0;
+}
+
+static void smp_failure(struct l2cap_conn *conn, u8 reason, u8 send)
+{
+	struct hci_conn *hcon = conn->hcon;
+
+	if (send)
+		smp_send_cmd(conn, SMP_CMD_PAIRING_FAIL, sizeof(reason),
+								&reason);
+
+	clear_bit(HCI_CONN_ENCRYPT_PEND, &conn->hcon->flags);
+	mgmt_auth_failed(conn->hcon->hdev, conn->dst, hcon->type,
+			 hcon->dst_type, reason);
+
+	if (test_and_clear_bit(HCI_CONN_LE_SMP_PEND, &conn->hcon->flags)) {
+		cancel_delayed_work_sync(&conn->security_timer);
+		smp_chan_destroy(conn);
+	}
+}
+
+#define JUST_WORKS	0x00
+#define JUST_CFM	0x01
+#define REQ_PASSKEY	0x02
+#define CFM_PASSKEY	0x03
+#define REQ_OOB		0x04
+#define OVERLAP		0xFF
+
+/* SSBT :: KJH + for table info.
+* 0 - DisplayOnly
+* 1 - DisplayYesNo
+* 2 - KeyboardOnly
+* 3 - NoInputNoOutput
+* 4 - KeyboardDisplay
+*/
+
+/* gen_method[3][4] is changed to JUST_WORKS.
+  *Although JUST_CFM works with pin 0000, when interacting with NoInputNoOutput,
+  * such a gesture might be confusing to user. Hence its changed to JUST_WORKS
+  */
+static const u8 gen_method[5][5] = {
+	{ JUST_WORKS,  JUST_CFM,    REQ_PASSKEY, JUST_WORKS, REQ_PASSKEY },
+	{ JUST_WORKS,  JUST_CFM,    REQ_PASSKEY, JUST_WORKS, REQ_PASSKEY },
+	{ CFM_PASSKEY, CFM_PASSKEY, REQ_PASSKEY, JUST_WORKS, CFM_PASSKEY },
+	{ JUST_WORKS,  JUST_CFM,    JUST_WORKS,  JUST_WORKS, JUST_WORKS  },
+	{ CFM_PASSKEY, CFM_PASSKEY, REQ_PASSKEY, JUST_WORKS, OVERLAP     },
+};
+
+static int tk_request(struct l2cap_conn *conn, u8 remote_oob, u8 auth,
+						u8 local_io, u8 remote_io)
+{
+	struct hci_conn *hcon = conn->hcon;
+	struct smp_chan *smp = conn->smp_chan;
+	u8 method;
+	u32 passkey = 0;
+	int ret = 0;
+
+	/* Initialize key for JUST WORKS */
+	memset(smp->tk, 0, sizeof(smp->tk));
+	clear_bit(SMP_FLAG_TK_VALID, &smp->smp_flags);
+
+	BT_DBG("tk_request: auth:%d lcl:%d rem:%d", auth, local_io, remote_io);
+
+	/* If neither side wants MITM, use JUST WORKS */
+	/* If either side has unknown io_caps, use JUST WORKS */
+	/* Otherwise, look up method from the table */
+	if (!(auth & SMP_AUTH_MITM) ||
+			local_io > SMP_IO_KEYBOARD_DISPLAY ||
+			remote_io > SMP_IO_KEYBOARD_DISPLAY)
+		method = JUST_WORKS;
+	else
+		method = gen_method[remote_io][local_io];
+
+	/* If not bonding, don't ask user to confirm a Zero TK */
+	if (!(auth & SMP_AUTH_BONDING) && method == JUST_CFM)
+		method = JUST_WORKS;
+
+	BT_DBG("********************");
+	BT_DBG("method = %x", method);
+	BT_DBG("********************");
+
+	/* If Just Works, Continue with Zero TK */
+	if (method == JUST_WORKS) {
+		set_bit(SMP_FLAG_TK_VALID, &smp->smp_flags);
+		return 0;
+	}
+
+	/* Not Just Works/Confirm results in MITM Authentication */
+	if (method != JUST_CFM)
+		set_bit(SMP_FLAG_MITM_AUTH, &smp->smp_flags);
+
+	/* If both devices have Keyoard-Display I/O, the master
+	 * Confirms and the slave Enters the passkey.
+	 */
+	if (method == OVERLAP) {
+		if (hcon->link_mode & HCI_LM_MASTER)
+			method = CFM_PASSKEY;
+		else
+			method = REQ_PASSKEY;
+	}
+
+	/* Generate random passkey. Not valid until confirmed. */
+	if (method == CFM_PASSKEY) {
+		u8 key[16];
+
+		memset(key, 0, sizeof(key));
+		get_random_bytes(&passkey, sizeof(passkey));
+		passkey %= 1000000;
+		put_unaligned_le32(passkey, key);
+		swap128(key, smp->tk);
+		BT_DBG("PassKey: %d", passkey);
+	}
+
+	hci_dev_lock(hcon->hdev);
+
+	if (method == REQ_PASSKEY)
+		ret = mgmt_user_passkey_request(hcon->hdev, conn->dst,
+						hcon->type, hcon->dst_type);
+	else
+		ret = mgmt_user_confirm_request(hcon->hdev, conn->dst,
+						hcon->type, hcon->dst_type,
+						cpu_to_le32(passkey), 0);
+
+	hci_dev_unlock(hcon->hdev);
+
+	return ret;
+}
+
+static void confirm_work(struct work_struct *work)
+{
+	struct smp_chan *smp = container_of(work, struct smp_chan, confirm);
+	struct l2cap_conn *conn = smp->conn;
+	struct crypto_blkcipher *tfm;
+	struct smp_cmd_pairing_confirm cp;
+	int ret;
+	u8 res[16], reason;
+
+	BT_DBG("conn %p", conn);
+
+	tfm = crypto_alloc_blkcipher("ecb(aes)", 0, CRYPTO_ALG_ASYNC);
+	if (IS_ERR(tfm)) {
+		reason = SMP_UNSPECIFIED;
+		goto error;
+	}
+
+	smp->tfm = tfm;
+
+	if (conn->hcon->out)
+		ret = smp_c1(tfm, smp->tk, smp->prnd, smp->preq, smp->prsp, 0,
+			     conn->src, conn->hcon->dst_type, conn->dst, res);
+	else
+		ret = smp_c1(tfm, smp->tk, smp->prnd, smp->preq, smp->prsp,
+			     conn->hcon->dst_type, conn->dst, 0, conn->src,
+			     res);
+	if (ret) {
+		reason = SMP_UNSPECIFIED;
+		goto error;
+	}
+
+	clear_bit(SMP_FLAG_CFM_PENDING, &smp->smp_flags);
+
+	swap128(res, cp.confirm_val);
+	smp_send_cmd(smp->conn, SMP_CMD_PAIRING_CONFIRM, sizeof(cp), &cp);
+
+	return;
+
+error:
+	smp_failure(conn, reason, 1);
+}
+
+static void random_work(struct work_struct *work)
+{
+	struct smp_chan *smp = container_of(work, struct smp_chan, random);
+	struct l2cap_conn *conn = smp->conn;
+	struct hci_conn *hcon = conn->hcon;
+	struct crypto_blkcipher *tfm = smp->tfm;
+	u8 reason, confirm[16], res[16], key[16];
+	int ret;
+
+	if (IS_ERR_OR_NULL(tfm)) {
+		reason = SMP_UNSPECIFIED;
+		goto error;
+	}
+
+	BT_DBG("conn %p %s", conn, conn->hcon->out ? "master" : "slave");
+
+	if (hcon->out)
+		ret = smp_c1(tfm, smp->tk, smp->rrnd, smp->preq, smp->prsp, 0,
+			     conn->src, hcon->dst_type, conn->dst, res);
+	else
+		ret = smp_c1(tfm, smp->tk, smp->rrnd, smp->preq, smp->prsp,
+			     hcon->dst_type, conn->dst, 0, conn->src, res);
+	if (ret) {
+		reason = SMP_UNSPECIFIED;
+		goto error;
+	}
+
+	swap128(res, confirm);
+
+	if (memcmp(smp->pcnf, confirm, sizeof(smp->pcnf)) != 0) {
+		BT_ERR("Pairing failed (confirmation values mismatch)");
+		reason = SMP_CONFIRM_FAILED;
+		goto error;
+	}
+
+	if (hcon->out) {
+		u8 stk[16], rand[8];
+		__le16 ediv;
+
+		memset(rand, 0, sizeof(rand));
+		ediv = 0;
+
+		smp_s1(tfm, smp->tk, smp->rrnd, smp->prnd, key);
+		swap128(key, stk);
+
+		memset(stk + smp->enc_key_size, 0,
+		       SMP_MAX_ENC_KEY_SIZE - smp->enc_key_size);
+
+		if (test_and_set_bit(HCI_CONN_ENCRYPT_PEND, &hcon->flags)) {
+			reason = SMP_UNSPECIFIED;
+			goto error;
+		}
+
+		hci_le_start_enc(hcon, ediv, rand, stk);
+		hcon->enc_key_size = smp->enc_key_size;
+	} else {
+		u8 stk[16], r[16], rand[8];
+		__le16 ediv;
+
+		memset(rand, 0, sizeof(rand));
+		ediv = 0;
+
+		swap128(smp->prnd, r);
+		smp_send_cmd(conn, SMP_CMD_PAIRING_RANDOM, sizeof(r), r);
+
+		smp_s1(tfm, smp->tk, smp->prnd, smp->rrnd, key);
+		swap128(key, stk);
+
+		memset(stk + smp->enc_key_size, 0,
+				SMP_MAX_ENC_KEY_SIZE - smp->enc_key_size);
+
+		hci_add_ltk(hcon->hdev, conn->dst, hcon->dst_type,
+			    HCI_SMP_STK_SLAVE, 0, 0, stk, smp->enc_key_size,
+			    ediv, rand);
+	}
+
+	return;
+
+error:
+	smp_failure(conn, reason, 1);
+}
+
+static struct smp_chan *smp_chan_create(struct l2cap_conn *conn)
+{
+	struct smp_chan *smp;
+
+	smp = kzalloc(sizeof(struct smp_chan), GFP_ATOMIC);
+	if (!smp)
+		return NULL;
+
+	INIT_WORK(&smp->confirm, confirm_work);
+	INIT_WORK(&smp->random, random_work);
+
+	smp->conn = conn;
+	conn->smp_chan = smp;
+	conn->hcon->smp_conn = conn;
+
+	hci_conn_hold(conn->hcon);
+
+	return smp;
+}
+
+void smp_chan_destroy(struct l2cap_conn *conn)
+{
+	struct smp_chan *smp = conn->smp_chan;
+
+	BUG_ON(!smp);
+
+	if (smp->tfm)
+		crypto_free_blkcipher(smp->tfm);
+
+	kfree(smp);
+	conn->smp_chan = NULL;
+	conn->hcon->smp_conn = NULL;
+	hci_conn_put(conn->hcon);
+}
+
+int smp_user_confirm_reply(struct hci_conn *hcon, u16 mgmt_op, __le32 passkey)
+{
+	struct l2cap_conn *conn = hcon->smp_conn;
+	struct smp_chan *smp;
+	u32 value;
+	u8 key[16];
+
+	BT_DBG("");
+
+	if (!conn)
+		return -ENOTCONN;
+
+	smp = conn->smp_chan;
+
+	switch (mgmt_op) {
+	case MGMT_OP_USER_PASSKEY_REPLY:
+		value = le32_to_cpu(passkey);
+		memset(key, 0, sizeof(key));
+		BT_DBG("PassKey: %d", value);
+		put_unaligned_le32(value, key);
+		swap128(key, smp->tk);
+		/* Fall Through */
+	case MGMT_OP_USER_CONFIRM_REPLY:
+		set_bit(SMP_FLAG_TK_VALID, &smp->smp_flags);
+		break;
+	case MGMT_OP_USER_PASSKEY_NEG_REPLY:
+	case MGMT_OP_USER_CONFIRM_NEG_REPLY:
+		smp_failure(conn, SMP_PASSKEY_ENTRY_FAILED, 1);
+		return 0;
+	default:
+		smp_failure(conn, SMP_PASSKEY_ENTRY_FAILED, 1);
+		return -EOPNOTSUPP;
+	}
+
+	/* If it is our turn to send Pairing Confirm, do so now */
+	if (test_bit(SMP_FLAG_CFM_PENDING, &smp->smp_flags))
+		queue_work(hcon->hdev->workqueue, &smp->confirm);
 
 	return 0;
 }
@@ -532,9 +857,11 @@ static int smp_cmd_master_ident(struct l2cap_conn *conn, struct sk_buff *skb)
 
 	skb_pull(skb, sizeof(*rp));
 
-	hci_add_ltk(conn->hcon->hdev, 1, conn->src, conn->smp_key_size,
-						rp->ediv, rp->rand, conn->tk);
-
+	hci_dev_lock(hdev);
+	authenticated = (conn->hcon->sec_level == BT_SECURITY_HIGH);
+	hci_add_ltk(conn->hcon->hdev, conn->dst, hcon->dst_type,
+		    HCI_SMP_LTK, 1, authenticated, smp->tk, smp->enc_key_size,
+		    rp->ediv, rp->rand);
 	smp_distribute_keys(conn, 1);
 
 	return 0;
@@ -658,8 +985,10 @@ int smp_distribute_keys(struct l2cap_conn *conn, __u8 force)
 
 		smp_send_cmd(conn, SMP_CMD_ENCRYPT_INFO, sizeof(enc), &enc);
 
-		hci_add_ltk(conn->hcon->hdev, 1, conn->dst, conn->smp_key_size,
-						ediv, ident.rand, enc.ltk);
+		authenticated = hcon->sec_level == BT_SECURITY_HIGH;
+		hci_add_ltk(conn->hcon->hdev, conn->dst, hcon->dst_type,
+			    HCI_SMP_LTK_SLAVE, 1, authenticated,
+			    enc.ltk, smp->enc_key_size, ediv, ident.rand);
 
 		ident.ediv = cpu_to_le16(ediv);
 

@@ -354,7 +354,8 @@ static void inquiry_cache_flush(struct hci_dev *hdev)
 	}
 }
 
-struct inquiry_entry *hci_inquiry_cache_lookup(struct hci_dev *hdev, bdaddr_t *bdaddr)
+struct inquiry_entry *hci_inquiry_cache_lookup_unknown(struct hci_dev *hdev,
+						       bdaddr_t *bdaddr)
 {
 	struct inquiry_cache *cache = &hdev->inq_cache;
 	struct inquiry_entry *e;
@@ -362,12 +363,51 @@ struct inquiry_entry *hci_inquiry_cache_lookup(struct hci_dev *hdev, bdaddr_t *b
 	BT_DBG("cache %p, %s", cache, batostr(bdaddr));
 
 	for (e = cache->list; e; e = e->next)
+	list_for_each_entry(e, &cache->unknown, list) {
 		if (!bacmp(&e->data.bdaddr, bdaddr))
+			return e;
+	}
+
+	return NULL;
+}
+
+struct inquiry_entry *hci_inquiry_cache_lookup_resolve(struct hci_dev *hdev,
+						       bdaddr_t *bdaddr,
+						       int state)
+{
+	struct discovery_state *cache = &hdev->discovery;
+	struct inquiry_entry *e;
+
+	BT_DBG("cache %p bdaddr %s state %d", cache, batostr(bdaddr), state);
+
+	list_for_each_entry(e, &cache->resolve, list) {
+		if (!bacmp(bdaddr, BDADDR_ANY) && e->name_state == state)
+			return e;
+		if (!bacmp(&e->data.bdaddr, bdaddr))
+			return e;
+	}
+
+	return NULL;
+}
+
+void hci_inquiry_cache_update_resolve(struct hci_dev *hdev,
+				      struct inquiry_entry *ie)
+{
+	struct discovery_state *cache = &hdev->discovery;
+	struct list_head *pos = &cache->resolve;
+	struct inquiry_entry *p;
+
+	list_del(&ie->list);
+
+	list_for_each_entry(p, &cache->resolve, list) {
+		if (p->name_state != NAME_PENDING &&
+				abs(p->data.rssi) >= abs(ie->data.rssi))
 			break;
 	return e;
 }
 
-void hci_inquiry_cache_update(struct hci_dev *hdev, struct inquiry_data *data)
+bool hci_inquiry_cache_update(struct hci_dev *hdev, struct inquiry_data *data,
+			      bool name_known, bool *ssp)
 {
 	struct inquiry_cache *cache = &hdev->inq_cache;
 	struct inquiry_entry *ie;
@@ -1071,7 +1111,10 @@ struct link_key *hci_find_ltk(struct hci_dev *hdev, __le16 ediv, u8 rand[8])
 
 		if (k->type != HCI_LK_SMP_LTK)
 			continue;
-
+struct smp_ltk *hci_find_ltk_by_addr(struct hci_dev *hdev, bdaddr_t *bdaddr,
+				     u8 addr_type)
+{
+	struct smp_ltk *k;
 		if (k->dlen != sizeof(*id))
 			continue;
 
@@ -1099,7 +1142,7 @@ struct link_key *hci_find_link_key_type(struct hci_dev *hdev,
 EXPORT_SYMBOL(hci_find_link_key_type);
 
 int hci_add_link_key(struct hci_dev *hdev, struct hci_conn *conn, int new_key,
-				bdaddr_t *bdaddr, u8 *val, u8 type, u8 pin_len)
+		     bdaddr_t *bdaddr, u8 *val, u8 type, u8 pin_len)
 {
 	struct link_key *key, *old_key;
 	u8 old_key_type, persistent;
@@ -1153,8 +1196,9 @@ int hci_add_link_key(struct hci_dev *hdev, struct hci_conn *conn, int new_key,
 	return 0;
 }
 
-int hci_add_ltk(struct hci_dev *hdev, int new_key, bdaddr_t *bdaddr,
-			u8 key_size, __le16 ediv, u8 rand[8], u8 ltk[16])
+int hci_add_ltk(struct hci_dev *hdev, bdaddr_t *bdaddr, u8 addr_type, u8 type,
+		int new_key, u8 authenticated, u8 tk[16], u8 enc_size, u16
+		ediv, u8 rand[8])
 {
 	struct link_key *key, *old_key;
 	struct key_master_id *id;
@@ -1218,7 +1262,7 @@ static void hci_cmd_timer(unsigned long arg)
 }
 
 struct oob_data *hci_find_remote_oob_data(struct hci_dev *hdev,
-							bdaddr_t *bdaddr)
+					  bdaddr_t *bdaddr)
 {
 	struct oob_data *data;
 
@@ -1258,7 +1302,7 @@ int hci_remote_oob_data_clear(struct hci_dev *hdev)
 }
 
 int hci_add_remote_oob_data(struct hci_dev *hdev, bdaddr_t *bdaddr, u8 *hash,
-								u8 *randomizer)
+			    u8 *randomizer)
 {
 	struct oob_data *data;
 
@@ -1281,8 +1325,7 @@ int hci_add_remote_oob_data(struct hci_dev *hdev, bdaddr_t *bdaddr, u8 *hash,
 	return 0;
 }
 
-struct bdaddr_list *hci_blacklist_lookup(struct hci_dev *hdev,
-						bdaddr_t *bdaddr)
+struct bdaddr_list *hci_blacklist_lookup(struct hci_dev *hdev, bdaddr_t *bdaddr)
 {
 	struct list_head *p;
 
@@ -1374,7 +1417,12 @@ done:
 
 static void hci_clear_adv_cache(unsigned long arg)
 {
-	struct hci_dev *hdev = (void *) arg;
+	struct hci_dev *hdev = container_of(work, struct hci_dev,
+					    adv_work.work);
+	/* - temp, don't clear adv cache. */
+	/* to do */
+	BT_DBG("");
+	return;
 
 	hci_dev_lock(hdev);
 
@@ -1417,11 +1465,7 @@ static inline int is_connectable_adv(u8 evt_type)
 }
 
 int hci_add_adv_entry(struct hci_dev *hdev,
-					struct hci_ev_le_advertising_info *ev)
-{
-	struct adv_entry *entry;
-
-	if (!is_connectable_adv(ev->evt_type))
+					struct hci_ev_le_advertising_info *ev) { struct adv_entry *entry; if (!is_connectable_adv(ev->evt_type))
 		return -EINVAL;
 
 	/* Only new entries should be added to adv_entries. So, if
@@ -1456,6 +1500,124 @@ int hci_register_dev(struct hci_dev *hdev)
 		return -EINVAL;
 
 	write_lock_bh(&hci_dev_list_lock);
+	hci_send_cmd(hdev, HCI_OP_LE_SET_SCAN_ENABLE, sizeof(cp), &cp);
+}
+
+static int hci_do_le_scan(struct hci_dev *hdev, u8 type, u16 interval,
+			  u16 window, int timeout)
+{
+	long timeo = msecs_to_jiffies(3000);
+	struct le_scan_params param;
+	int err;
+
+	BT_DBG("%s", hdev->name);
+
+	if (test_bit(HCI_LE_SCAN, &hdev->dev_flags))
+		return -EINPROGRESS;
+
+	param.type = type;
+	param.interval = interval;
+	param.window = window;
+
+	hci_req_lock(hdev);
+
+	err = __hci_request(hdev, le_scan_param_req, (unsigned long) &param,
+			    timeo);
+	if (!err)
+		err = __hci_request(hdev, le_scan_enable_req, 0, timeo);
+
+	hci_req_unlock(hdev);
+
+	if (err < 0)
+		return err;
+
+	schedule_delayed_work(&hdev->le_scan_disable,
+			      msecs_to_jiffies(timeout));
+
+	return 0;
+}
+
+static void le_scan_disable_work(struct work_struct *work)
+{
+	struct hci_dev *hdev = container_of(work, struct hci_dev,
+					    le_scan_disable.work);
+	struct hci_cp_le_set_scan_enable cp;
+
+	BT_DBG("%s", hdev->name);
+
+	memset(&cp, 0, sizeof(cp));
+
+	hci_send_cmd(hdev, HCI_OP_LE_SET_SCAN_ENABLE, sizeof(cp), &cp);
+}
+
+static void le_scan_work(struct work_struct *work)
+{
+	struct hci_dev *hdev = container_of(work, struct hci_dev, le_scan);
+	struct le_scan_params *param = &hdev->le_scan_params;
+
+	BT_DBG("%s", hdev->name);
+
+	hci_do_le_scan(hdev, param->type, param->interval, param->window,
+		       param->timeout);
+}
+
+int hci_le_scan(struct hci_dev *hdev, u8 type, u16 interval, u16 window,
+		int timeout)
+{
+	struct le_scan_params *param = &hdev->le_scan_params;
+
+	BT_DBG("%s", hdev->name);
+
+	if (work_busy(&hdev->le_scan))
+		return -EINPROGRESS;
+
+	param->type = type;
+	param->interval = interval;
+	param->window = window;
+	param->timeout = timeout;
+
+	queue_work(system_long_wq, &hdev->le_scan);
+
+	return 0;
+}
+
+/* for stop le scan */
+int hci_cancel_le_scan(struct hci_dev *hdev)
+{
+	struct hci_cp_le_set_scan_enable cp;
+
+	BT_DBG("%s", hdev->name);
+
+	if (!test_bit(HCI_LE_SCAN, &hdev->dev_flags))
+		return -EPERM;
+
+	/* to do : if use cancel_delayed_work_sync, then error will occur.
+	* cancel_delayed_work_sync(&hdev->le_scan_disable);
+	*/
+	cancel_delayed_work(&hdev->le_scan_disable);
+
+	memset(&cp, 0, sizeof(cp));
+
+	return hci_send_cmd(hdev, HCI_OP_LE_SET_SCAN_ENABLE, sizeof(cp), &cp);
+}
+
+/* Register HCI device */
+int hci_register_dev(struct hci_dev *hdev)
+{
+	struct list_head *head = &hci_dev_list, *p;
+	int i, id, error;
+
+	BT_DBG("%p name %s bus %d", hdev, hdev->name, hdev->bus);
+
+	if (!hdev->open || !hdev->close)
+		return -EINVAL;
+
+	/* Do not allow HCI_AMP devices to register at index 0,
+	 * so the index can be used as the AMP controller ID.
+	 */
+	id = (hdev->dev_type == HCI_BREDR) ? 0 : 1;
+
+	write_lock(&hci_dev_list_lock);
 
 	/* Find first available device id */
 	list_for_each(p, &hci_dev_list) {
@@ -2152,7 +2314,8 @@ static inline void hci_sched_acl(struct hci_dev *hdev)
 		while (quote-- && (skb = skb_dequeue(&conn->data_q))) {
 			BT_DBG("skb %p len %d", skb, skb->len);
 
-			hci_conn_enter_active_mode(conn, bt_cb(skb)->force_active);
+			hci_conn_enter_active_mode(chan->conn,
+						   bt_cb(skb)->force_active);
 
 			hci_send_frame(skb);
 			hdev->acl_last_tx = jiffies;

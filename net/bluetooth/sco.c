@@ -913,8 +913,7 @@ done:
 /* ----- SCO interface with lower layer (HCI) ----- */
 static int sco_connect_ind(struct hci_dev *hdev, bdaddr_t *bdaddr, __u8 type)
 {
-	register struct sock *sk;
-	struct hlist_node *node;
+	struct sock *sk;
 	int lm = 0;
 
 	if (type != SCO_LINK && type != ESCO_LINK)

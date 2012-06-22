@@ -543,23 +543,22 @@ static void mxt224_ta_probe(bool ta_status)
 		calcfg_dis = copy_data->calcfg_charging_e;
 		calcfg_en = copy_data->calcfg_charging_e | 0x20;
 		noise_threshold = copy_data->noisethr_charging;
+		movfilter = copy_data->movfilter_charging;
 		charge_time = copy_data->chrgtime_charging_e;
 #ifdef CLEAR_MEDIAN_FILTER_ERROR
 		copy_data->gErrCondition = ERR_RTN_CONDITION_MAX;
 		copy_data->noise_median.mferr_setting = false;
 #endif
 	} else {
-		if (copy_data->boot_or_resume == 1) {
+		if (copy_data->boot_or_resume == 1)
 			copy_data->threshold = copy_data->tchthr_batt_init;
-			calcfg_dis = copy_data->calcfg_batt_e;
-		} else {
+		else
 			copy_data->threshold = copy_data->tchthr_batt;
-			calcfg_dis = copy_data->calcfg_batt_e ^ 0x20;
-		}
 		copy_data->threshold_e = copy_data->tchthr_batt_e;
-
+		calcfg_dis = copy_data->calcfg_batt_e;
 		calcfg_en = copy_data->calcfg_batt_e | 0x20;
 		noise_threshold = copy_data->noisethr_batt;
+		movfilter = copy_data->movfilter_batt;
 		charge_time = copy_data->chrgtime_batt_e;
 #ifdef CLEAR_MEDIAN_FILTER_ERROR
 		copy_data->gErrCondition = ERR_RTN_CONDITION_IDLE;
@@ -591,7 +590,7 @@ static void mxt224_ta_probe(bool ta_status)
 				  size_one, &value);
 			/*move Filter */
 			value = copy_data->movfilter_batt_e;
-			register_address = 15;
+			register_address = 13;
 			write_mem(copy_data,
 				  obj_address + (u16) register_address,
 				  size_one, &value);
@@ -736,9 +735,24 @@ static void mxt224_ta_probe(bool ta_status)
 #if !defined(PRODUCT_SHIP)
 		read_mem(copy_data, obj_address + (u16) register_address,
 			 (u8) size_one, &val);
-		printk(KERN_ERR "[TSP]TA_probe MXT224 T%d Byte%d is %d\n", 9,
+		printk(KERN_ERR "[TSP] TA_probe MXT224 T%d Byte%d is %d\n", 9,
 		       register_address, val);
 #endif
+		value = (u8) movfilter;
+		register_address = 13;
+		write_mem(copy_data, obj_address + (u16) register_address,
+			  size_one, &value);
+		read_mem(copy_data, obj_address + (u16) register_address, (u8) size_one, &val);
+		printk(KERN_ERR "[TSP] TA_probe MXT224 T%d Byte%d is %d\n", 9, register_address, val);
+
+		// if 255, it's not modified. by tegrak
+		if (mov_hysti != 255) {
+			value = (u8)mov_hysti;
+			register_address = 11;
+			write_mem(copy_data, obj_address+(u16)register_address, size_one, &value);
+			read_mem(copy_data, obj_address+(u16)register_address, (u8)size_one, &val);
+			printk(KERN_ERR "[TSP] TA_probe MXT224 T%d Byte%d is %d\n", 9, register_address, val);
+		}
 
 		value = noise_threshold;
 		register_address = 8;
@@ -748,6 +762,8 @@ static void mxt224_ta_probe(bool ta_status)
 		size_one = 1;
 		write_mem(copy_data, obj_address + (u16) register_address,
 			  size_one, &value);
+		read_mem(copy_data, obj_address + (u16) register_address, (u8) size_one, &val);
+		printk(KERN_ERR "[TSP] TA_probe MXT224 T%d Byte%d is %d\n", 9, register_address, val);
 	}
 	copy_data->ta_status_pre = (bool) ta_status;
 };
@@ -1606,6 +1622,7 @@ static void report_input_data(struct mxt224_data *data)
 		if (touch_is_pressed && mxt224_touch_cb != NULL) {
        (*mxt224_touch_cb)();
      }
+		if(mxt224_touch_cb!=NULL) (*mxt224_touch_cb)();
 	}
 	if (s2w_enabled)
 		up(&s2w_sem);
@@ -2417,6 +2434,58 @@ static ssize_t qt602240_object_setting(struct device *dev,
 
 	return count;
 
+}
+
+/*
+ * write MOVHYSTI of TOUCH_MULTITOUCHSCREEN_T9
+ * by tegrak, found by vitalij@XDA
+ */
+static ssize_t mov_hysti_store(struct device *dev,
+					struct device_attribute *attr,
+					const char *buf, size_t count)
+{
+	unsigned int register_value;
+	char buff[50];
+	int i;
+
+	sscanf(buf, "%u", &register_value);
+	
+	// store value in global variable
+	mov_hysti = register_value;
+	
+	//do not apply if the screen is not active,
+	//it will be applied after turning on the screen anyway -gm
+	if (copy_data->mxt224_enabled == 1)
+	{
+		i = sprintf(buff, "%u %u %u", TOUCH_MULTITOUCHSCREEN_T9, 11, register_value);
+		qt602240_object_setting(dev, attr, buff, i);
+	}
+	return count;
+}
+
+/* 
+ * read MOVHYSTI of TOUCH_MULTITOUCHSCREEN_T9
+ * by tegrak, found by vitalij@XDA
+ */
+static ssize_t mov_hysti_show(struct device* dev, 
+					struct device_attribute *attr,
+					char *buf)
+{
+	struct mxt224_data *data = dev_get_drvdata(dev);
+	unsigned int object_type = TOUCH_MULTITOUCHSCREEN_T9;
+	u8 val;
+	int ret;
+	u16 address;
+	u16 size;
+
+	ret = get_object_info(data, (u8)object_type, &size, &address);
+	if (ret || size <= 11) {
+		printk(KERN_ERR "[TSP] fail to get object_info\n");
+		return -EINVAL;
+	}
+
+	read_mem(data, address+11, 1, &val);
+	return sprintf(buf, "%u\n", val);
 }
 
 static ssize_t qt602240_object_show(struct device *dev,
@@ -3334,6 +3403,73 @@ static ssize_t tsp_threshold_store(struct device *dev,
 	return size;
 }
 
+static ssize_t touch_config_show(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "[Battery]  touchthresh: %u noisethresh: %u movfilter: %u\n"
+			    "[Charging] touchthresh: %u noisethresh: %u movfilter: %u\n",
+					copy_data->tchthr_batt,
+					copy_data->noisethr_batt,
+					copy_data->movfilter_batt,
+					copy_data->tchthr_charging,
+					copy_data->noisethr_charging,
+					copy_data->movfilter_charging);
+}
+
+static ssize_t touch_config_store(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t size)
+{
+	int ret = 0;
+	unsigned int value[6];
+	bool ta_status = 0;
+
+	ret = sscanf(buf, "%d %d %d %d %d %d",
+		&value[0], &value[1], &value[2],
+			&value[3], &value[4], &value[5]);
+
+	if (ret != 6) {
+		return -EINVAL;
+	} else {
+		copy_data->tchthr_batt = (u8) value[0];
+		copy_data->noisethr_batt = (u8) value[1];
+		copy_data->movfilter_batt = (u8) value[2];
+		copy_data->tchthr_charging = (u8) value[3];
+		copy_data->noisethr_charging = (u8) value[4];
+		copy_data->movfilter_charging = (u8) value[5];
+	}
+
+	if (copy_data->read_ta_status) {
+		copy_data->read_ta_status(&ta_status);
+		mxt224_ta_probe(ta_status);
+	}
+
+	return size;
+}
+
+void tsp_touch_config_update(int status)
+{
+	u8 touch_threshold;
+	u8 mov_filter;
+	u8 noise_threshold;
+	bool ta_status = 0;
+
+	if (status > 0) {
+		touch_threshold = copy_data->tchthr_charging;
+		mov_filter = copy_data->movfilter_charging;
+		noise_threshold = copy_data->noisethr_charging;
+	} else {
+		touch_threshold = copy_data->tchthr_batt;
+		mov_filter = copy_data->movfilter_batt;
+		noise_threshold = copy_data->noisethr_batt;
+	}
+
+	if (copy_data->read_ta_status) {
+		copy_data->read_ta_status(&ta_status);
+		mxt224_ta_probe(ta_status);
+	}
+}
+
 static ssize_t set_mxt_firm_version_show(struct device *dev,
 					 struct device_attribute *attr,
 					 char *buf)
@@ -3566,7 +3702,10 @@ static DEVICE_ATTR(dbg_switch, S_IRUGO | S_IWUSR | S_IWGRP, NULL,
 		   mxt224_debug_setting);
 static DEVICE_ATTR(tsp_slide2wake, S_IRUGO | S_IWUSR | S_IWGRP,
            slide2wake_show, slide2wake_store);
-
+static DEVICE_ATTR(mov_hysti, S_IRUGO | S_IWUSR | S_IWGRP, 
+		mov_hysti_show, mov_hysti_store);
+static DEVICE_ATTR(tsp_touch_config, S_IRUGO | S_IWUSR | S_IWGRP,
+	touch_config_show, touch_config_store);
 static int sec_touchscreen_enable(struct mxt224_data *data)
 {
 	mutex_lock(&data->lock);
@@ -4244,9 +4383,13 @@ static int __devinit mxt224_probe(struct i2c_client *client,
 		printk(KERN_ERR "Failed to create device file(%s)!\n",
 		       dev_attr_tsp_threshold.attr.name);
 
+	if (device_create_file(sec_touchscreen, &dev_attr_tsp_touch_config) < 0)
+		printk(KERN_ERR "Failed to create device file(%s)!\n",
+		       dev_attr_tsp_touch_config.attr.name);
+
 	if (device_create_file(sec_touchscreen, &dev_attr_tsp_slide2wake) < 0)
 		printk(KERN_ERR "Failed to create device file(%s)!\n",
-		       dev_attr_tsp_slide2wake.attr.name);
+			   dev_attr_tsp_slide2wake.attr.name);
 
 	if (device_create_file
 	    (sec_touchscreen, &dev_attr_tsp_firm_version_phone) < 0)

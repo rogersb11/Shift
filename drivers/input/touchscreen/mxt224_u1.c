@@ -204,12 +204,10 @@ struct mxt224_data {
 	bool enabled;
 };
 
-static u8 mov_hysti = 255;
-
 #ifdef CONFIG_TOUCHSCREEN_GESTURES
 
-#define MAX_GESTURES 10
-#define MAX_GESTURE_FINGERS MAX_USING_FINGER_NUM
+#define MAX_GESTURES 30
+#define MAX_GESTURE_FINGERS 5
 #define MAX_GESTURE_STEPS 10
 
 // Definitions

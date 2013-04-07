@@ -1483,9 +1483,27 @@ extern int filemap_fault(struct vm_area_struct *, struct vm_fault *);
 int write_one_page(struct page *page, int wait);
 void task_dirty_inc(struct task_struct *tsk);
 
-/* readahead.c */
-#define VM_MAX_READAHEAD	128	/* kbytes */
-#define VM_MIN_READAHEAD	16	/* kbytes (includes current page) */
+/*
+* Limit default readahead size for small devices.
+*        disk size    readahead size
+*               1M                8k
+*               4M               16k
+*              16M               32k
+*              64M               64k
+*             256M              128k
+*               1G              256k
+*               4G              512k
+*              16G             1024k
+*              64G             2048k
+*             256G             4096k
+*/
+
+/* readahead.c in kbytes, for 16GB cards*/
+#define VM_MAX_READAHEAD	1024
+/* kbytes (includes current page) */
+#define VM_MIN_READAHEAD	16
+
+extern unsigned long max_readahead_pages;
 
 int force_page_cache_readahead(struct address_space *mapping, struct file *filp,
 			pgoff_t offset, unsigned long nr_to_read);

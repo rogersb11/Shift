@@ -22,7 +22,13 @@ ifeq ($(CONFIG_CRYPTO_FIPS),y)
 AFLAGS_head.o += -DFIPS_KERNEL_RAM_BASE=0x40008000
 endif
 HEAD	= head.o
+<<<<<<< HEAD
 OBJS	+= misc.o decompress.o
+=======
+ifeq ($(CONFIG_KERNEL_LZ4),y)
+CFLAGS_decompress.o := -Os
+endif
+>>>>>>> e83e989... arm: Add support for LZ4-compressed kernel
 FONTC	= $(srctree)/drivers/video/console/font_acorn_8x8.c
 
 #
@@ -87,14 +93,15 @@ SEDFLAGS	= s/TEXT_START/$(ZTEXTADDR)/;s/BSS_START/$(ZBSSADDR)/
 suffix_$(CONFIG_KERNEL_GZIP) = gzip
 suffix_$(CONFIG_KERNEL_LZO)  = lzo
 suffix_$(CONFIG_KERNEL_LZMA) = lzma
+suffix_$(CONFIG_KERNEL_LZ4)  = lz4
 
 targets       := vmlinux vmlinux.lds \
 		 piggy.$(suffix_y) piggy.$(suffix_y).o \
 		 font.o font.c head.o misc.o $(OBJS)
 
 # Make sure files are removed during clean
-extra-y       += piggy.gzip piggy.lzo piggy.lzma lib1funcs.S
-
+extra-y       += piggy.gzip piggy.lzo piggy.lzma lib1funcs.S piggy.lz4
+ 
 ifeq ($(CONFIG_FUNCTION_TRACER),y)
 ORIG_CFLAGS := $(KBUILD_CFLAGS)
 KBUILD_CFLAGS = $(subst -pg, , $(ORIG_CFLAGS))

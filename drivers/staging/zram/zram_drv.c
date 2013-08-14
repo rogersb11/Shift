@@ -29,7 +29,7 @@
 #include <linux/genhd.h>
 #include <linux/highmem.h>
 #include <linux/slab.h>
-#include <linux/lzo.h>
+#include <linux/crypto.h>
 #include <linux/string.h>
 #include <linux/vmalloc.h>
 #ifdef CONFIG_ZRAM_FOR_ANDROID
@@ -38,6 +38,8 @@
 
 
 #include "zram_drv.h"
+
+#define ZRAM_COMPRESSOR_DEFAULT "lzo"
 
 /* Globals */
 static int zram_major;
@@ -55,6 +57,64 @@ static void zram_stat_dec(u32 *v)
 {
 	*v = *v - 1;
 }
+
+/* Cryptographic API features */
+static char *zram_compressor = ZRAM_COMPRESSOR_DEFAULT;
+static struct crypto_comp *zram_comp_tfm;
+
+enum comp_op {
+	ZRAM_COMPOP_COMPRESS,
+	ZRAM_COMPOP_DECOMPRESS
+};
+
+static int zram_comp_op(enum comp_op op, const u8 *src, unsigned int slen,
+			u8 *dst, unsigned int *dlen)
+{
+	struct crypto_comp *tfm;
+	int ret;
+
+	tfm = zram_comp_tfm;
+	switch (op) {
+	case ZRAM_COMPOP_COMPRESS:
+		ret = crypto_comp_compress(tfm, src, slen, dst, dlen);
+		break;
+	case ZRAM_COMPOP_DECOMPRESS:
+		ret = crypto_comp_decompress(tfm, src, slen, dst, dlen);
+		break;
+	default:
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+
+static int __init zram_comp_init(void)
+{
+	int ret;
+	ret = crypto_has_comp(zram_compressor, 0, 0);
+	if (!ret) {
+		pr_info("%s is not available\n", zram_compressor);
+		zram_compressor = ZRAM_COMPRESSOR_DEFAULT;
+		ret = crypto_has_comp(zram_compressor, 0, 0);
+		if (!ret)
+			return -ENODEV;
+	}
+	pr_info("using %s compressor\n", zram_compressor);
+
+	/* alloc transform */
+	zram_comp_tfm = crypto_alloc_comp(zram_compressor, 0, 0);
+	if (!zram_comp_tfm)
+		return -ENOMEM;
+
+	return 0;
+}
+
+static inline void zram_comp_exit(void)
+{
+	if (zram_comp_tfm)
+		crypto_free_comp(zram_comp_tfm);
+}
+/* end of Cryptographic API features */
 
 static void zram_stat64_add(struct zram *zram, u64 *v, u64 inc)
 {
@@ -271,7 +331,7 @@ static void zram_read(struct zram *zram, struct bio *bio)
 		cmem = kmap_atomic(zram->table[index].page, KM_USER1) +
 				zram->table[index].offset;
 
-		ret = lzo1x_decompress_safe(
+		 ret = zram_comp_op(ZRAM_COMPOP_DECOMPRESS,
 			cmem + sizeof(*zheader),
 			xv_get_object_size(cmem) - sizeof(*zheader),
 			user_mem, &clen);
@@ -280,7 +340,7 @@ static void zram_read(struct zram *zram, struct bio *bio)
 		kunmap_atomic(cmem, KM_USER1);
 
 		/* Should NEVER happen. Return bio error if it does. */
-		if (unlikely(ret != LZO_E_OK)) {
+		if (unlikely(ret != 0)) {
 			pr_err("Decompression failed! err=%d, page=%u\n",
 				ret, index);
 			zram_stat64_inc(zram, &zram->stats.failed_reads);
@@ -339,12 +399,12 @@ static void zram_write(struct zram *zram, struct bio *bio)
 			continue;
 		}
 
-		ret = lzo1x_1_compress(user_mem, PAGE_SIZE, src, &clen,
-					zram->compress_workmem);
+		ret = zram_comp_op(ZRAM_COMPOP_COMPRESS, user_mem,
+        PAGE_SIZE, src, &clen);
 
 		kunmap_atomic(user_mem, KM_USER0);
 
-		if (unlikely(ret != LZO_E_OK)) {
+		if (unlikely(ret != 0)) {
 			mutex_unlock(&zram->lock);
 			pr_err("Compression failed! err=%d\n", ret);
 			zram_stat64_inc(zram, &zram->stats.failed_writes);
@@ -535,13 +595,6 @@ int zram_init_device(struct zram *zram)
 
 	zram_set_disksize(zram, totalram_pages << PAGE_SHIFT);
 
-	zram->compress_workmem = kzalloc(LZO1X_MEM_COMPRESS, GFP_KERNEL);
-	if (!zram->compress_workmem) {
-		pr_err("Error allocating compressor working memory!\n");
-		ret = -ENOMEM;
-		goto fail;
-	}
-
 	zram->compress_buffer = (void *)__get_free_pages(__GFP_ZERO, 1);
 	if (!zram->compress_buffer) {
 		pr_err("Error allocating compressor buffer space\n");
@@ -693,19 +746,27 @@ static void destroy_device(struct zram *zram)
 static int __init zram_init(void)
 {
 	int ret, dev_id;
+	
+	/* Initialize Cryptographic API */
+	pr_info("Loading Crypto API features\n");
+	if (zram_comp_init()) {
+		pr_err("Compressor initialization failed\n");
+		ret = -ENOMEM;
+		goto out;
+	}
 
 	if (num_devices > max_num_devices) {
 		pr_warning("Invalid value for num_devices: %u\n",
 				num_devices);
 		ret = -EINVAL;
-		goto out;
+		goto free_comp;
 	}
 
 	zram_major = register_blkdev(0, "zram");
 	if (zram_major <= 0) {
 		pr_warning("Unable to get major number\n");
 		ret = -EBUSY;
-		goto out;
+		goto free_comp;
 	}
 
 	if (!num_devices) {
@@ -735,6 +796,8 @@ free_devices:
 	kfree(zram_devices);
 unregister:
 	unregister_blkdev(zram_major, "zram");
+free_comp:
+zram_comp_exit();
 out:
 	return ret;
 }
@@ -755,6 +818,7 @@ static void __exit zram_exit(void)
 	unregister_blkdev(zram_major, "zram");
 
 	kfree(zram_devices);
+	zram_comp_exit();
 	pr_debug("Cleanup done!\n");
 }
 
@@ -763,6 +827,9 @@ MODULE_PARM_DESC(num_devices, "Number of zram devices");
 
 module_init(zram_init);
 module_exit(zram_exit);
+
+module_param_named(compressor, zram_compressor, charp, 0);
+MODULE_PARM_DESC(compressor, "Compressor type");
 
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Nitin Gupta <ngupta@vflare.org>");

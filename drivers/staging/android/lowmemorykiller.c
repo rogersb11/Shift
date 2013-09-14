@@ -53,6 +53,16 @@ static int lowmem_adj[6] = {
 	1,
 	6,
 	12,
+	15,
+};
+static int lowmem_adj_size = 6;
+static int lowmem_minfree[6] = {
+	3 * 512,	/* 6MB */
+	2 * 1024,	/* 8MB */
+	4 * 1024,	/* 16MB */
+	12 * 1024,	/* 49MB */
+	16 * 1024,	/* 64MB */
+	20 * 1024,	/* 128MB */
 };
 static int lowmem_adj_size = 4;
 static size_t lowmem_minfree[6] = {
@@ -60,6 +70,7 @@ static size_t lowmem_minfree[6] = {
 	2 * 1024,	/* 8MB */
 	4 * 1024,	/* 16MB */
 	16 * 1024,	/* 64MB */
+	20 * 1024,	/* 128MB */
 };
 static int lowmem_minfree_size = 4;
 #ifdef CONFIG_ZRAM_FOR_ANDROID
@@ -87,6 +98,13 @@ static unsigned int check_free_memory = 0;
 enum pageout_io {
 	PAGEOUT_IO_ASYNC,
 	PAGEOUT_IO_SYNC,
+static int lowmem_minfree_screen_on[6] = {
+	3 * 512,	/* 6MB */
+	2 * 1024,	/* 8MB */
+	4 * 1024,	/* 16MB */
+	12 * 1024,	/* 49MB */
+	16 * 1024,	/* 64MB */
+	20 * 1024,	/* 128MB */
 };
 
 

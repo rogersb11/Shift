@@ -61,7 +61,7 @@ static inline long sync_writeback_pages(unsigned long dirtied)
 /*
  * Start background writeback (via writeback threads) at this percentage
  */
-int dirty_background_ratio = 10;
+int dirty_background_ratio = 15;
 
 /*
  * dirty_background_bytes starts at 0 (disabled) so that it is a function of
@@ -89,12 +89,18 @@ unsigned long vm_dirty_bytes;
 /*
  * The interval between `kupdate'-style writebacks
  */
-unsigned int dirty_writeback_interval = 5 * 100; /* centiseconds */
+#define DEFAULT_DIRTY_WRITEBACK_INTERVAL 600 /* centiseconds */
+unsigned int dirty_writeback_interval,
+	resume_dirty_writeback_interval;
+int suspend_dirty_writeback_interval = 6000;
 
 /*
  * The longest time for which data is allowed to remain dirty
  */
-unsigned int dirty_expire_interval = 30 * 100; /* centiseconds */
+#define DEFAULT_DIRTY_EXPIRE_INTERVAL 3000 /* centiseconds */
+unsigned int dirty_expire_interval,
+	resume_dirty_expire_interval;
+int suspend_dirty_expire_interval = 12000;
 
 /*
  * Flag that makes the machine dump writes/reads and block dirtyings.
@@ -133,6 +139,152 @@ static struct prop_descriptor vm_dirties;
 
 /*
  * couple the period to the dirty_ratio:
+ * In a memory zone, there is a certain amount of pages we consider
+ * available for the page cache, which is essentially the number of
+ * free and reclaimable pages, minus some zone reserves to protect
+ * lowmem and the ability to uphold the zone's watermarks without
+ * requiring writeback.
+ *
+ * This number of dirtyable pages is the base value of which the
+ * user-configurable dirty ratio is the effictive number of pages that
+ * are allowed to be actually dirtied.  Per individual zone, or
+ * globally by using the sum of dirtyable pages over all zones.
+ *
+ * Because the user is allowed to specify the dirty limit globally as
+ * absolute number of bytes, calculating the per-zone dirty limit can
+ * require translating the configured limit into a percentage of
+ * global dirtyable memory first.
+ */
+
+static unsigned long highmem_dirtyable_memory(unsigned long total)
+{
+#ifdef CONFIG_HIGHMEM
+	int node;
+	unsigned long x = 0;
+
+	for_each_node_state(node, N_HIGH_MEMORY) {
+		struct zone *z =
+			&NODE_DATA(node)->node_zones[ZONE_HIGHMEM];
+
+		x += zone_page_state(z, NR_FREE_PAGES) +
+		     zone_reclaimable_pages(z) - z->dirty_balance_reserve;
+	}
+	/*
+	 * Unreclaimable memory (kernel memory or anonymous memory
+	 * without swap) can bring down the dirtyable pages below
+	 * the zone's dirty balance reserve and the above calculation
+	 * will underflow.  However we still want to add in nodes
+	 * which are below threshold (negative values) to get a more
+	 * accurate calculation but make sure that the total never
+	 * underflows.
+	 */
+	if ((long)x < 0)
+		x = 0;
+
+	/*
+	 * Make sure that the number of highmem pages is never larger
+	 * than the number of the total dirtyable memory. This can only
+	 * occur in very strange VM situations but we want to make sure
+	 * that this does not occur.
+	 */
+	return min(x, total);
+#else
+	return 0;
+#endif
+}
+
+/**
+ * global_dirtyable_memory - number of globally dirtyable pages
+ *
+ * Returns the global number of pages potentially available for dirty
+ * page cache.  This is the base value for the global dirty limits.
+ */
+static unsigned long global_dirtyable_memory(void)
+{
+	unsigned long x;
+
+	x = global_page_state(NR_FREE_PAGES) + global_reclaimable_pages();
+	x -= min(x, dirty_balance_reserve);
+
+	if (!vm_highmem_is_dirtyable)
+		x -= highmem_dirtyable_memory(x);
+
+	/* Subtract min_free_kbytes */
+	x -= min_t(unsigned long, x, min_free_kbytes >> (PAGE_SHIFT - 10));
+
+	return x + 1;	/* Ensure that we never return 0 */
+}
+
+/*
+ * global_dirty_limits - background-writeback and dirty-throttling thresholds
+ *
+ * Calculate the dirty thresholds based on sysctl parameters
+ * - vm.dirty_background_ratio  or  vm.dirty_background_bytes
+ * - vm.dirty_ratio             or  vm.dirty_bytes
+ * The dirty limits will be lifted by 1/4 for PF_LESS_THROTTLE (ie. nfsd) and
+ * real-time tasks.
+ */
+void global_dirty_limits(unsigned long *pbackground, unsigned long *pdirty)
+{
+	unsigned long background;
+	unsigned long dirty;
+	unsigned long uninitialized_var(available_memory);
+	struct task_struct *tsk;
+
+	if (!vm_dirty_bytes || !dirty_background_bytes)
+		available_memory = global_dirtyable_memory();
+
+	if (vm_dirty_bytes)
+		dirty = DIV_ROUND_UP(vm_dirty_bytes, PAGE_SIZE);
+	else
+		dirty = (vm_dirty_ratio * available_memory) / 100;
+
+	if (dirty_background_bytes)
+		background = DIV_ROUND_UP(dirty_background_bytes, PAGE_SIZE);
+	else
+		background = (dirty_background_ratio * available_memory) / 100;
+
+	if (background >= dirty)
+		background = dirty / 2;
+	tsk = current;
+	if (tsk->flags & PF_LESS_THROTTLE || rt_task(tsk)) {
+		background += background / 4;
+		dirty += dirty / 4;
+	}
+	*pbackground = background;
+	*pdirty = dirty;
+	trace_global_dirty_state(background, dirty);
+}
+
+/**
+ * zone_dirtyable_memory - number of dirtyable pages in a zone
+ * @zone: the zone
+ *
+ * Returns the zone's number of pages potentially available for dirty
+ * page cache.  This is the base value for the per-zone dirty limits.
+ */
+static unsigned long zone_dirtyable_memory(struct zone *zone)
+{
+	/*
+	 * The effective global number of dirtyable pages may exclude
+	 * highmem as a big-picture measure to keep the ratio between
+	 * dirty memory and lowmem reasonable.
+	 *
+	 * But this function is purely about the individual zone and a
+	 * highmem zone can hold its share of dirty pages, so we don't
+	 * care about vm_highmem_is_dirtyable here.
+	 */
+	unsigned long nr_pages = zone_page_state(zone, NR_FREE_PAGES) +
+		zone_reclaimable_pages(zone);
+
+	/* don't allow this to underflow */
+	nr_pages -= min(nr_pages, zone->dirty_balance_reserve);
+	return nr_pages;
+}
+
+/**
+ * zone_dirty_limit - maximum number of dirty pages allowed in a zone
+ * @zone: the zone
  *
  *   period/2 ~ roundup_pow_of_two(dirty limit)
  */
@@ -772,6 +924,28 @@ static struct notifier_block __cpuinitdata ratelimit_nb = {
 	.next		= NULL,
 };
 
+static void dirty_early_suspend(struct early_suspend *handler)
+{
+	if (dirty_writeback_interval != resume_dirty_writeback_interval)
+		resume_dirty_writeback_interval = dirty_writeback_interval;
+	if (dirty_expire_interval != resume_dirty_expire_interval)
+		resume_dirty_expire_interval = dirty_expire_interval;
+
+	dirty_writeback_interval = suspend_dirty_writeback_interval;
+	dirty_expire_interval = suspend_dirty_expire_interval;
+}
+
+static void dirty_late_resume(struct early_suspend *handler)
+{
+	dirty_writeback_interval = resume_dirty_writeback_interval;
+	dirty_expire_interval = resume_dirty_expire_interval;
+}
+
+static struct early_suspend dirty_suspend = {
+	.suspend = dirty_early_suspend,
+	.resume = dirty_late_resume,
+};
+
 /*
  * Called early on to tune the page writeback dirty limits.
  *
@@ -792,7 +966,12 @@ static struct notifier_block __cpuinitdata ratelimit_nb = {
  */
 void __init page_writeback_init(void)
 {
-	int shift;
+	dirty_writeback_interval = resume_dirty_writeback_interval =
+		DEFAULT_DIRTY_WRITEBACK_INTERVAL;
+	dirty_expire_interval = resume_dirty_expire_interval =
+		DEFAULT_DIRTY_EXPIRE_INTERVAL;
+
+	register_early_suspend(&dirty_suspend);
 
 	writeback_set_ratelimit();
 	register_cpu_notifier(&ratelimit_nb);

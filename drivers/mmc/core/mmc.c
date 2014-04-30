@@ -930,7 +930,6 @@ static int mmc_select_powerclass(struct mmc_card *card,
 	return err;
 }
 
-#ifndef CONFIG_WIMAX_CMC
 /*
  * Selects the desired buswidth and switch to the HS200 mode
  * if bus width set without error
@@ -1003,7 +1002,28 @@ static int mmc_select_hs200(struct mmc_card *card)
 err:
 	return err;
 }
-#endif
+
+static const struct mmc_fixup mmc_fixups[] = {
+	/*
+	 * There is a bug in some Samsung emmc chips where the wear leveling
+	 * code can insert 32 Kbytes of zeros into the storage.  We can patch
+	 * the firmware in such chips each time they are powered on to prevent
+	 * the bug from occurring.  Only apply this patch to a particular
+	 * revision of the firmware of the specified chips.  Date doesn't
+	 * matter, so include all possible dates in min and max fields.
+	 */
+	MMC_FIXUP_REV("VYL00M", 0x15, CID_OEMID_ANY,
+		      cid_rev(0, 0x25, 1997, 1), cid_rev(0, 0x25, 2012, 12),
+		      add_quirk_mmc, MMC_QUIRK_SAMSUNG_WL_PATCH),
+	MMC_FIXUP_REV("KYL00M", 0x15, CID_OEMID_ANY,
+		      cid_rev(0, 0x25, 1997, 1), cid_rev(0, 0x25, 2012, 12),
+		      add_quirk_mmc, MMC_QUIRK_SAMSUNG_WL_PATCH),
+	MMC_FIXUP_REV("MAG4FA", 0x15, CID_OEMID_ANY,
+		      cid_rev(0, 0x25, 1997, 1), cid_rev(0, 0x25, 2012, 12),
+		      add_quirk_mmc, MMC_QUIRK_SAMSUNG_WL_PATCH),
+	END_FIXUP
+};
+
 /*
  * Handle the detection and initialisation of a card.
  *
@@ -1102,6 +1122,10 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 		err = mmc_decode_cid(card);
 		if (err)
 			goto free_card;
+		/* Detect on first access quirky cards that need help when
+		 * powered-on
+		 */
+		mmc_fixup_device(card, mmc_fixups);
 	}
 
 	/*
@@ -1515,6 +1539,14 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 		host->card = card;
 
 	mmc_free_ext_csd(ext_csd);
+
+	/*
+	 * Patch the firmware in certain Samsung emmc chips to fix a
+	 * wear leveling bug.
+	 */
+	if (card->quirks & MMC_QUIRK_SAMSUNG_WL_PATCH)
+		mmc_fixup_samsung_fw(card);
+
 	return 0;
 
 free_card:

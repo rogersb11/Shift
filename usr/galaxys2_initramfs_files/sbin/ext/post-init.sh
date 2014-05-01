@@ -1,14 +1,4 @@
 #!/system/bin/sh
-# Logging
-#/sbin/busybox cp /data/user.log /data/user.log.bak
-#/sbin/busybox rm /data/user.log
-#exec >>/data/user.log
-#exec 2>&1
-
-#!/sbin/busybox sh
-
-# first mod the partitions then boot
-sh /sbin/ext/system_tune_on_init.sh;
 
 ROOT_RW()
 {

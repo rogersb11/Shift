@@ -48,7 +48,7 @@ extern int map_errcode( _mali_osk_errcode_t err );
 #endif
 
 /* Module parameter to control log level */
-int ump_debug_level = 2;
+int ump_debug_level = 0;
 module_param(ump_debug_level, int, S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IROTH); /* rw-rw-r-- */
 MODULE_PARM_DESC(ump_debug_level, "Higher number, more dmesg output");
 

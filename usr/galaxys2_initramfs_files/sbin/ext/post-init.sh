@@ -72,10 +72,6 @@ fi
 #usb mode
 /res/customconfig/actions/usb-mode ${usb_mode}
 
-# update cpu tunig after profiles load
-sh /sbin/ext/cortexbrain-tune.sh apply_cpu update > /dev/null;
-rm -f /data/.siyah/booting;
-
 # install kernel modules
 mount -o remount,rw /system
 rm /system/lib/modules/*.ko

@@ -82,11 +82,7 @@ struct check_device_op {
 	enum hc_type		type;
 };
 
-#ifdef CONFIG_MACH_MIDAS
-unsigned int log_en = 1;
-#else
-unsigned int log_en;
-#endif
+unsigned int log_en = 0;
 module_param_named(log_en, log_en, uint, 0644);
 
 #if defined(CONFIG_MACH_MIDAS) || defined(CONFIG_SLP)

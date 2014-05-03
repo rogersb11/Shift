@@ -31,7 +31,7 @@ enum {
 	DEBUG_SUSPEND = 1U << 2,
 	DEBUG_VERBOSE = 1U << 3,
 };
-static int debug_mask = DEBUG_USER_STATE;
+static int debug_mask = 0;
 #ifdef CONFIG_ZRAM_FOR_ANDROID
 atomic_t optimize_comp_on = ATOMIC_INIT(0);
 EXPORT_SYMBOL(optimize_comp_on);

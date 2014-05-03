@@ -32,8 +32,7 @@
 #define ANDROID_ALARM_PRINT_INT (1U << 5)
 #define ANDROID_ALARM_PRINT_FLOW (1U << 6)
 
-static int debug_mask = ANDROID_ALARM_PRINT_ERROR | \
-			ANDROID_ALARM_PRINT_INIT_STATUS;
+static int debug_mask = 0;
 module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 
 #define pr_alarm(debug_level_mask, args...) \

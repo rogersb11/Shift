@@ -45,6 +45,8 @@
 #define MICRO_FREQUENCY_MIN_SAMPLE_RATE		(10000)
 #define MIN_FREQUENCY_UP_THRESHOLD		(11)
 #define MAX_FREQUENCY_UP_THRESHOLD		(100)
+#define UP_THRESHOLD_AT_MIN_FREQ		(70)
+#define FREQ_FOR_RESPONSIVENESS		    (500000)
 
 /*
  * The polling frequency of this governor depends on the capability of
@@ -139,6 +141,8 @@ static struct dbs_tuners {
 	.down_differential = DEF_FREQUENCY_DOWN_DIFFERENTIAL,
 	.ignore_nice = 0,
 	.powersave_bias = 0,
+	.deep_sleep = 1,
+	.fast_start = 1,
 	.freq_step = 100,
 };
 

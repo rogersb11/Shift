@@ -5,7 +5,7 @@ STRIP="/home/brett/Desktop/toolchains/arm-cortex_a9-linux-gnueabihf-linaro_4.7.4
 OUTDIR="out"
 CONFIG="kernel_defconfig"
 SK_TWRP_INITRAMS_SOURCE="/home/brett/kern/usr/initramfs/sk.list"
-KK_CWM_INITRAMFS_SOURCE="/home/brett/kern/usr/initramfs/cwm.list"
+KK_CWM_INITRAMFS_SOURCE="/home/brett/kern/usr/initramfs/source.list"
 KK_TWRP_INITRAMFS_SOURCE="/home/brett/kern/usr/initramfs/twrp.list"
 JB_INITRAMFS_SOURCE="/home/brett/kern/usr/initramfs/jb-i777.list"
 RAMDISK="/home/brett/kern/ramdisk"
@@ -53,15 +53,15 @@ echo "Building CWM Kernel..."
 		cp arch/arm/boot/zImage ${OUTDIR}
 		cd ${OUTDIR}
 		echo "Creating Shift CWM kernel zip..."
-		zip -r Shift-4.1-CWM.zip ./ -x *.zip *.gitignore
+		zip -r Shift-4.8-CM.zip ./ -x *.zip *.gitignore
 
-echo "Building TWRP Kernel..."
-		cd ${KERNEL_DIR}
-		make -j8 ARCH=arm CROSS_COMPILE=${TOOLCHAIN} CONFIG_INITRAMFS_SOURCE=${KK_TWRP_INITRAMFS_SOURCE}
-		cp arch/arm/boot/zImage ${OUTDIR}
-		cd ${OUTDIR}
-		echo "Creating Shift TWRP kernel zip..."
-		zip -r Shift-4.1-TWRP.zip ./ -x *.zip *.gitignore
+#echo "Building TWRP Kernel..."
+#		cd ${KERNEL_DIR}
+#		make -j8 ARCH=arm CROSS_COMPILE=${TOOLCHAIN} CONFIG_INITRAMFS_SOURCE=${KK_TWRP_INITRAMFS_SOURCE}
+#		cp arch/arm/boot/zImage ${OUTDIR}
+#		cd ${OUTDIR}
+#		echo "Creating Shift TWRP kernel zip..."
+#		zip -r Shift-4.1-TWRP.zip ./ -x *.zip *.gitignore
 
 echo "Building Slim Kernel..."
 		cd ${KERNEL_DIR}
@@ -69,6 +69,6 @@ echo "Building Slim Kernel..."
 		cp arch/arm/boot/zImage ${OUTDIR}
 		cd ${OUTDIR}
 		echo "Creating Slim TWRP kernel zip..."
-		zip -r Shift-4.1-Slim.zip ./ -x *.zip *.gitignore
+		zip -r Shift-4.8-Slim.zip ./ -x *.zip *.gitignore
 
 echo "Done!"

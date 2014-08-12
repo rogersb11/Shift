@@ -2,4 +2,4 @@
 
 git add --all;
 git commit -a;
-git push shift;
+git push;

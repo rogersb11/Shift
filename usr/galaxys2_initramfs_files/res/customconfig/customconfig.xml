@@ -407,6 +407,7 @@ name="ZRAM Size" action="zram_size" unit="MB" min="0" reversed="false" step="50"
 <settingsPane description="Here you can choose optional kernel modules. If you don't know what they mean then there is no point in enabling them. Needs restart." name="Optional Modules">
 <checkbox description="This enables SMB/CIFS/NFS Network Modules. These modules are responsible for managing your network shares. It is used to mount/unmount network file resources on to your device." name="SMB/CIFS/NFS Network Modules" action="generic /tmp/cifs" label="SMB/CIFS/NFS Network Modules"/>
 <checkbox description="SCSI Scan Wait is responsible to wait until all the asynchronous scans are complete. It will wait after all root SCSI drivers have finished scanning their busses. Note that use of this module can increase your bootup time." name="Small Computer System Interface Wait Scan" action="generic /tmp/scsi" label="SCSI Wait Scan"/>
+<checkbox description="Frandom Module, random number module much much faster than stock available" name="Frandom Number Module" action="generic /dev/frandom.ko" label="Frandom"/>
 </settingsPane>
 </settingsTab>
 <settingsTab name="PROFILES">

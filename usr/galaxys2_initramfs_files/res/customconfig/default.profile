@@ -109,5 +109,6 @@ logger=on
 install_root=on
 cifs=off
 scsi=off
+frandom=off
 usb_mode=default
 default_stats=off

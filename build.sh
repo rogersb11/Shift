@@ -53,7 +53,7 @@ echo "Building CWM Kernel..."
 		cp arch/arm/boot/zImage ${OUTDIR}
 		cd ${OUTDIR}
 		echo "Creating Shift CWM kernel zip..."
-		zip -r Shift-4.8-CM.zip ./ -x *.zip *.gitignore
+		zip -r Shift-5.0.zip ./ -x *.zip *.gitignore
 
 #echo "Building TWRP Kernel..."
 #		cd ${KERNEL_DIR}
@@ -63,12 +63,12 @@ echo "Building CWM Kernel..."
 #		echo "Creating Shift TWRP kernel zip..."
 #		zip -r Shift-4.1-TWRP.zip ./ -x *.zip *.gitignore
 
-echo "Building Slim Kernel..."
-		cd ${KERNEL_DIR}
-		make -j8 ARCH=arm CROSS_COMPILE=${TOOLCHAIN} CONFIG_INITRAMFS_SOURCE=${SK_TWRP_INITRAMS_SOURCE}
-		cp arch/arm/boot/zImage ${OUTDIR}
-		cd ${OUTDIR}
-		echo "Creating Slim TWRP kernel zip..."
-		zip -r Shift-4.8-Slim.zip ./ -x *.zip *.gitignore
+#echo "Building Slim Kernel..."
+#		cd ${KERNEL_DIR}
+#		make -j8 ARCH=arm CROSS_COMPILE=${TOOLCHAIN} CONFIG_INITRAMFS_SOURCE=${SK_TWRP_INITRAMS_SOURCE}
+#		cp arch/arm/boot/zImage ${OUTDIR}
+#		cd ${OUTDIR}
+#		echo "Creating Slim TWRP kernel zip..."
+#		zip -r Shift-4.8-Slim.zip ./ -x *.zip *.gitignore
 
 echo "Done!"

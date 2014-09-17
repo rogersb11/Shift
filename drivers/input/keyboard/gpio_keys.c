@@ -27,6 +27,9 @@
 #include <linux/gpio.h>
 #include <linux/irqdesc.h>
 #include <linux/i2c/mxt224_u1.h>
+#ifdef CONFIG_TOUCH_WAKE
+#include <linux/touch_wake.h>
+#endif
 
 extern struct class *sec_class;
 
@@ -53,6 +56,7 @@ struct gpio_keys_drvdata {
 	bool flip_cover;
 	struct delayed_work flip_cover_dwork;
 #endif
+
 	struct gpio_button_data data[0];
 	/* WARNING: this area can be expanded. Do NOT add any member! */
 };

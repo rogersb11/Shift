@@ -22,13 +22,10 @@ ifeq ($(CONFIG_CRYPTO_FIPS),y)
 AFLAGS_head.o += -DFIPS_KERNEL_RAM_BASE=0x40008000
 endif
 HEAD	= head.o
-<<<<<<< HEAD
-OBJS	+= misc.o decompress.o
-=======
+OBJS += misc.o decompress.o
 ifeq ($(CONFIG_KERNEL_LZ4),y)
 CFLAGS_decompress.o := -Os
 endif
->>>>>>> e83e989... arm: Add support for LZ4-compressed kernel
 FONTC	= $(srctree)/drivers/video/console/font_acorn_8x8.c
 
 #

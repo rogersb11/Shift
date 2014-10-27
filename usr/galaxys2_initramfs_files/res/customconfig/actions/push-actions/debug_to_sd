@@ -14,8 +14,8 @@ DEBUG_FILE_LOGCAT="/sdcard/shift_debug_logcat";
 case "${debug_to_sd}" in
 	1)
 		(
-			PROFILE=`cat /data/.siyah/.active.profile`;
-			. /data/.siyah/${PROFILE}.profile;
+			PROFILE=`cat /data/.shift/.active.profile`;
+			. /data/.shift/${PROFILE}.profile;
 
 			SEPARATOR()
 			{
@@ -60,9 +60,9 @@ case "${debug_to_sd}" in
 			SEPARATOR;
 
 			# Profile
-			PROFILE=`cat /data/.siyah/.active.profile`;
+			PROFILE=`cat /data/.shift/.active.profile`;
 			echo "Profile-Config: $PROFILE" >> $DEBUG_FILE;
-			cat /data/.siyah/${PROFILE}.profile >> $DEBUG_FILE;
+			cat /data/.shift/${PROFILE}.profile >> $DEBUG_FILE;
 			SEPARATOR;
 
 			# Memory

@@ -17,14 +17,14 @@ fi;
 
 case "$soundgasm_hp" in
 	0)
-		if [ -e /data/.siyah/sound_hp_boost ]; then
+		if [ -e /data/.shift/sound_hp_boost ]; then
 			kmemhelper -t short -n mc1n2_vol_hpgain -o 0 0;
 			kmemhelper -t short -n mc1n2_vol_hpgain -o 2 0;
 			kmemhelper -t short -n mc1n2_vol_hpgain -o 4 0;
 			kmemhelper -t short -n mc1n2_vol_hpgain -o 6 0;
 			echo "1e 1" > $debug_path/asoc/U1-YMU823/mc1n2.6-003a/codec_reg;
 			echo "1e 0" > $debug_path/asoc/U1-YMU823/mc1n2.6-003a/codec_reg;
-			rm -f /data/.siyah/sound_hp_boost;
+			rm -f /data/.shift/sound_hp_boost;
 		fi;
 	;;
 	1)
@@ -34,7 +34,7 @@ case "$soundgasm_hp" in
 		kmemhelper -t short -n mc1n2_vol_hpgain -o 6 384;
 		echo "1e 1" > $debug_path/asoc/U1-YMU823/mc1n2.6-003a/codec_reg;
 		echo "1e 0" > $debug_path/asoc/U1-YMU823/mc1n2.6-003a/codec_reg;
-		echo "boosted" > /data/.siyah/sound_hp_boost;
+		echo "boosted" > /data/.shift/sound_hp_boost;
 	;;
 	2)
 		kmemhelper -t short -n mc1n2_vol_hpgain -o 0 768;
@@ -43,7 +43,7 @@ case "$soundgasm_hp" in
 		kmemhelper -t short -n mc1n2_vol_hpgain -o 6 768;
 		echo "1e 1" > $debug_path/asoc/U1-YMU823/mc1n2.6-003a/codec_reg;
 		echo "1e 0" > $debug_path/asoc/U1-YMU823/mc1n2.6-003a/codec_reg;
-		echo "boosted" > /data/.siyah/sound_hp_boost;
+		echo "boosted" > /data/.shift/sound_hp_boost;
 	;;
 	3)
 		kmemhelper -t short -n mc1n2_vol_hpgain -o 0 1536;
@@ -52,7 +52,7 @@ case "$soundgasm_hp" in
 		kmemhelper -t short -n mc1n2_vol_hpgain -o 6 1536;
 		echo "1e 1" > $debug_path/asoc/U1-YMU823/mc1n2.6-003a/codec_reg;
 		echo "1e 0" > $debug_path/asoc/U1-YMU823/mc1n2.6-003a/codec_reg;
-		echo "boosted" > /data/.siyah/sound_hp_boost;
+		echo "boosted" > /data/.shift/sound_hp_boost;
 	;;
 	*)
 		soundgasm_hp=0;

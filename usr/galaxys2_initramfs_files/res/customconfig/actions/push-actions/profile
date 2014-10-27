@@ -1,5 +1,5 @@
 #!/system/bin/sh
 
-PROFILE=`cat /data/.siyah/.active.profile`;
+PROFILE=`cat /data/.shift/.active.profile`;
 
 echo "your profile: \"$PROFILE\"";

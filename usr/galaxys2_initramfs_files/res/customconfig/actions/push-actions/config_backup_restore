@@ -3,7 +3,7 @@ export PATH="/res/customconfig/actions/push-actions:${PATH}";
 
 BB=/xbin/busybox
 
-LOCK_FILE="/data/.siyah/restore_running";
+LOCK_FILE="/data/.shift/restore_running";
 
 if [ "a$2" == "a" ]; then
 	echo "$config_backup_restore";
@@ -16,8 +16,8 @@ case "${config_backup_restore}" in
 	3)
 		(
 			if [ `pgrep -f "push-actions/config_backup_restore" |  wc -l` -lt "5" ]; then
-				cp -a /res/customconfig/battery.profile /data/.siyah/;
-				echo "battery" > /data/.siyah/.active.profile;
+				cp -a /res/customconfig/battery.profile /data/.shift/;
+				echo "battery" > /data/.shift/.active.profile;
 				echo "Updating configuration, please wait ~50sec"
 				echo "STweaks will restart with new settings.";
 				$BB sh /res/user_uci_test_run.sh > /dev/null;
@@ -27,8 +27,8 @@ case "${config_backup_restore}" in
 	4)
 		(
 			if [ `pgrep -f "push-actions/config_backup_restore" |  wc -l` -lt "5" ]; then
-				cp -a /res/customconfig/default.profile /data/.siyah/;
-				echo "default" > /data/.siyah/.active.profile;
+				cp -a /res/customconfig/default.profile /data/.shift/;
+				echo "default" > /data/.shift/.active.profile;
 				echo "Updating configuration, please wait ~50sec"
 				echo "STweaks will will restart with new settings.";
 				$BB sh /res/user_uci_test_run.sh > /dev/null;
@@ -38,8 +38,8 @@ case "${config_backup_restore}" in
 	5)
 		(
 			if [ `pgrep -f "push-actions/config_backup_restore" |  wc -l` -lt "5" ]; then
-				cp -a /res/customconfig/performance.profile /data/.siyah/;
-				echo "performance" > /data/.siyah/.active.profile;
+				cp -a /res/customconfig/performance.profile /data/./home/brett/Desktop/out (2)/res/user_uci_test_run.sh/;
+				echo "performance" > /data/./home/brett/Desktop/out (2)/res/user_uci_test_run.sh/.active.profile;
 				echo "Updating configuration, please wait ~50sec"
 				echo "STweaks will restart with new settings.";
 				$BB sh /res/user_uci_test_run.sh > /dev/null;
@@ -49,8 +49,8 @@ case "${config_backup_restore}" in
 	6)
 		(
 			if [ `pgrep -f "push-actions/config_backup_restore" |  wc -l` -lt "5" ]; then
-				cp -a /res/customconfig/extreme_battery.profile /data/.siyah/;
-				echo "extreme_battery" > /data/.siyah/.active.profile;
+				cp -a /res/customconfig/extreme_battery.profile /data/.shift/;
+				echo "extreme_battery" > /data/.shift/.active.profile;
 				echo "Updating configuration, please wait ~50sec"
 				echo "STweaks will restart with new settings.";
 				$BB sh /res/user_uci_test_run.sh > /dev/null;
@@ -60,8 +60,8 @@ case "${config_backup_restore}" in
 	7)
 		(
 			if [ `pgrep -f "push-actions/config_backup_restore" |  wc -l` -lt "5" ]; then
-				cp -a /res/customconfig/extreme_performance.profile /data/.siyah/;
-				echo "extreme_performance" > /data/.siyah/.active.profile;
+				cp -a /res/customconfig/extreme_performance.profile /data/.shift/;
+				echo "extreme_performance" > /data/.shift/.active.profile;
 				echo "Updating configuration, please wait ~50sec"
 				echo "STweaks will restart with new settings.";
 				$BB sh /res/user_uci_test_run.sh > /dev/null;
@@ -69,8 +69,8 @@ case "${config_backup_restore}" in
 		)&
 	;;
 	*)
-		PROFILE=`cat /data/.siyah/.active.profile`;
-		file2="/data/.siyah/$PROFILE.profile_backup";
+		PROFILE=`cat /data/.shift/.active.profile`;
+		file2="/data/.shift/$PROFILE.profile_backup";
 		# if someone full wipe the system, then use the profile_backup from sd-card
 		if [ ! -f $file2 ]; then
 			file2="/sdcard/$PROFILE.profile_backup";
@@ -79,17 +79,17 @@ case "${config_backup_restore}" in
 esac;
 
 # check again for profile, maybe we have changed it ...
-PROFILE=`cat /data/.siyah/.active.profile`;
+PROFILE=`cat /data/.shift/.active.profile`;
 
 case "${config_backup_restore}" in
 	1)
 		echo "Backup config file ...";
-		cp /data/.siyah/${PROFILE}.profile /data/.siyah/${PROFILE}.profile_backup;
-		cp /data/.siyah/${PROFILE}.profile /sdcard/${PROFILE}.profile_backup;
+		cp /data/.shift/${PROFILE}.profile /data/.shift/${PROFILE}.profile_backup;
+		cp /data/.shift/${PROFILE}.profile /sdcard/${PROFILE}.profile_backup;
 		echo "Backup Done!";
 	;;
 	2)
-		file1="/data/.siyah/${PROFILE}.profile";
+		file1="/data/.shift/${PROFILE}.profile";
 
 		if [ ! -f $file1 ] || [ ! -f $file2 ]; then
 			echo "File not found!";

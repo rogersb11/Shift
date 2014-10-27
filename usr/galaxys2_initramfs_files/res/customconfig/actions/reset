@@ -2,7 +2,7 @@
 
 mount -o remount,rw /
 
-rm -r /data/.siyah
+rm -r /data/.shift
 
 mount -o remount,ro /
 

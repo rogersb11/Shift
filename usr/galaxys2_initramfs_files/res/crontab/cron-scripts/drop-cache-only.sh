@@ -1,8 +1,8 @@
 #!/system/bin/sh
 
 (
-	PROFILE=`cat /data/.siyah/.active.profile`;
-	. /data/.siyah/${PROFILE}.profile;
+	PROFILE=`cat /data/.shift/.active.profile`;
+	. /data/.shift/${PROFILE}.profile;
 
 	if [ "$cron_drop_cache" == "on" ]; then
 

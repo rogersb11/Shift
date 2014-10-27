@@ -1,7 +1,7 @@
 #!/system/bin/sh
 
-PROFILE=`cat /data/.siyah/.active.profile`;
-MAX_FREQ_OC=`cat /data/.siyah/${PROFILE}.profile | grep scaling_max_freq_oc | sed -e 's/scaling_max_freq_oc=//g'`;
+PROFILE=`cat /data/.shift/.active.profile`;
+MAX_FREQ_OC=`cat /data/.shift/${PROFILE}.profile | grep scaling_max_freq_oc | sed -e 's/scaling_max_freq_oc=//g'`;
 
 if [ "a$2" != "a" ]; then
 

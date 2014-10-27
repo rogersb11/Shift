@@ -137,7 +137,6 @@ file /sbin/ext/post-init.sh /home/brett/kern/usr/galaxys2_initramfs_files/sbin/e
 file /sbin/ext/install.sh /home/brett/kern/usr/galaxys2_initramfs_files/sbin/ext/install.sh 755 0 0
 file /sbin/ext/modules_recovery.sh /home/brett/kern/usr/galaxys2_initramfs_files/sbin/ext/modules_recovery.sh 755 0 0
 file /sbin/ext/run-init-scripts.sh /home/brett/kern/usr/galaxys2_initramfs_files/sbin/ext/run-init-scripts.sh 755 0 0
-file /sbin/ext/cortexbrain-tune.sh /home/brett/kern/usr/galaxys2_initramfs_files/sbin/ext/cortexbrain-tune.sh 755 0 0
 file /sbin/ext/system_tune_on_init.sh /home/brett/kern/usr/galaxys2_initramfs_files/sbin/ext/system_tune_on_init.sh 755 0 0
 dir /sys 755 0 0
 dir /tmp 777 0 0

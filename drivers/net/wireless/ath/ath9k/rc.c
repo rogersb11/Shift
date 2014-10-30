@@ -1470,6 +1470,12 @@ static void ath_rate_update(void *priv, struct ieee80211_supported_band *sband,
 
 #ifdef CONFIG_ATH9K_DEBUGFS
 
+static int ath9k_debugfs_open(struct inode *inode, struct file *file)
+{
+	file->private_data = inode->i_private;
+	return 0;
+}
+
 static ssize_t read_file_rcstat(struct file *file, char __user *user_buf,
 				size_t count, loff_t *ppos)
 {
@@ -1537,7 +1543,7 @@ static ssize_t read_file_rcstat(struct file *file, char __user *user_buf,
 
 static const struct file_operations fops_rcstat = {
 	.read = read_file_rcstat,
-	.open = simple_open,
+	.open = ath9k_debugfs_open,
 	.owner = THIS_MODULE
 };
 

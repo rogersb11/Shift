@@ -210,6 +210,12 @@ void dump_cred_dist_stats(struct htc_target *target)
 		   target->credit_info->cur_free_credits);
 }
 
+static int ath6kl_debugfs_open(struct inode *inode, struct file *file)
+{
+	file->private_data = inode->i_private;
+	return 0;
+}
+
 void ath6kl_debug_war(struct ath6kl *ar, enum ath6kl_war war)
 {
 	switch (war) {
@@ -250,7 +256,7 @@ static ssize_t read_file_war_stats(struct file *file, char __user *user_buf,
 
 static const struct file_operations fops_war_stats = {
 	.read = read_file_war_stats,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -477,7 +483,7 @@ static ssize_t ath6kl_fwlog_mask_write(struct file *file,
 }
 
 static const struct file_operations fops_fwlog_mask = {
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.read = ath6kl_fwlog_mask_read,
 	.write = ath6kl_fwlog_mask_write,
 	.owner = THIS_MODULE,
@@ -629,7 +635,7 @@ static ssize_t read_file_tgt_stats(struct file *file, char __user *user_buf,
 
 static const struct file_operations fops_tgt_stats = {
 	.read = read_file_tgt_stats,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -694,7 +700,7 @@ static ssize_t read_file_credit_dist_stats(struct file *file,
 
 static const struct file_operations fops_credit_dist_stats = {
 	.read = read_file_credit_dist_stats,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -793,7 +799,7 @@ static ssize_t ath6kl_endpoint_stats_write(struct file *file,
 }
 
 static const struct file_operations fops_endpoint_stats = {
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.read = ath6kl_endpoint_stats_read,
 	.write = ath6kl_endpoint_stats_write,
 	.owner = THIS_MODULE,
@@ -874,7 +880,7 @@ static ssize_t ath6kl_regread_write(struct file *file,
 static const struct file_operations fops_diag_reg_read = {
 	.read = ath6kl_regread_read,
 	.write = ath6kl_regread_write,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -1005,7 +1011,7 @@ static ssize_t ath6kl_lrssi_roam_read(struct file *file,
 static const struct file_operations fops_lrssi_roam_threshold = {
 	.read = ath6kl_lrssi_roam_read,
 	.write = ath6kl_lrssi_roam_write,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -1067,7 +1073,7 @@ static ssize_t ath6kl_regwrite_write(struct file *file,
 static const struct file_operations fops_diag_reg_write = {
 	.read = ath6kl_regwrite_read,
 	.write = ath6kl_regwrite_write,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -1172,7 +1178,7 @@ static ssize_t ath6kl_roam_table_read(struct file *file, char __user *user_buf,
 
 static const struct file_operations fops_roam_table = {
 	.read = ath6kl_roam_table_read,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -1210,7 +1216,7 @@ static ssize_t ath6kl_force_roam_write(struct file *file,
 
 static const struct file_operations fops_force_roam = {
 	.write = ath6kl_force_roam_write,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -1250,7 +1256,7 @@ static ssize_t ath6kl_roam_mode_write(struct file *file,
 
 static const struct file_operations fops_roam_mode = {
 	.write = ath6kl_roam_mode_write,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -1292,7 +1298,7 @@ static ssize_t ath6kl_keepalive_write(struct file *file,
 }
 
 static const struct file_operations fops_keepalive = {
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.read = ath6kl_keepalive_read,
 	.write = ath6kl_keepalive_write,
 	.owner = THIS_MODULE,
@@ -1337,7 +1343,7 @@ static ssize_t ath6kl_disconnect_timeout_write(struct file *file,
 }
 
 static const struct file_operations fops_disconnect_timeout = {
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.read = ath6kl_disconnect_timeout_read,
 	.write = ath6kl_disconnect_timeout_write,
 	.owner = THIS_MODULE,
@@ -1518,7 +1524,7 @@ static ssize_t ath6kl_create_qos_write(struct file *file,
 
 static const struct file_operations fops_create_qos = {
 	.write = ath6kl_create_qos_write,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -1566,7 +1572,7 @@ static ssize_t ath6kl_delete_qos_write(struct file *file,
 
 static const struct file_operations fops_delete_qos = {
 	.write = ath6kl_delete_qos_write,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -1605,7 +1611,7 @@ static ssize_t ath6kl_bgscan_int_write(struct file *file,
 
 static const struct file_operations fops_bgscan_int = {
 	.write = ath6kl_bgscan_int_write,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -1663,7 +1669,7 @@ static ssize_t ath6kl_listen_int_read(struct file *file,
 static const struct file_operations fops_listen_int = {
 	.read = ath6kl_listen_int_read,
 	.write = ath6kl_listen_int_write,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -1778,7 +1784,7 @@ static ssize_t ath6kl_power_params_write(struct file *file,
 
 static const struct file_operations fops_power_params = {
 	.write = ath6kl_power_params_write,
-	.open = simple_open,
+	.open = ath6kl_debugfs_open,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };

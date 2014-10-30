@@ -1189,6 +1189,12 @@ static long pmem_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 }
 
 #if PMEM_DEBUG
+static ssize_t debug_open(struct inode *inode, struct file *file)
+{
+	file->private_data = inode->i_private;
+	return 0;
+}
+
 static ssize_t debug_read(struct file *file, char __user *buf, size_t count,
 			  loff_t *ppos)
 {
@@ -1230,7 +1236,7 @@ static ssize_t debug_read(struct file *file, char __user *buf, size_t count,
 
 static struct file_operations debug_fops = {
 	.read = debug_read,
-	.open = simple_open,
+	.open = debug_open,
 };
 #endif
 

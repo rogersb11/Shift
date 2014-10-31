@@ -53,7 +53,7 @@ echo "Building CWM Kernel..."
 		cp arch/arm/boot/zImage ${OUTDIR}
 		cd ${OUTDIR}
 		echo "Creating Shift CWM kernel zip..."
-		zip -r Shift-5.0.zip ./ -x *.zip *.gitignore
+		zip -r Shift-ETERNAL.zip ./ -x *.zip *.gitignore
 
 #echo "Building TWRP Kernel..."
 #		cd ${KERNEL_DIR}

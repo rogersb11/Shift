@@ -13,6 +13,7 @@ load_image=/stage1/boot.cpio
 
 if busybox grep -q bootmode=2 /proc/cmdline ; then
 	# recovery boot
+	$BB cp /res/images/wallpaper.png
 	load_image=/stage1/recovery.cpio
 fi
 

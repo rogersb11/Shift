@@ -795,7 +795,7 @@ done:
 
 static void btusb_destruct(struct hci_dev *hdev)
 {
-	struct btusb_data *data = hci_get_drvdata(hdev);
+	struct btusb_data *data = hdev->driver_data;
 
 	BT_DBG("%s", hdev->name);
 

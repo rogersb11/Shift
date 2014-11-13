@@ -1,0 +1,195 @@
+Ibl: pbl_read_emmc441() read 8k
+Ibl: pbl_read_emmc441() read 96k
+Ibl: pbl_read_emmc441() read download info
+Ibl: pbl_read_emmc441() endop
+Ibl: jump() verify_binary_integrity...ok
+Ibl: jump() jump!!!
+
+Welcome to Samsung Primitive Bootloader.
+build time: Nov 28 2012 18:41:41
+current time: cb/15/4 3f:76:4d
+
+[set_mmc_ocr] Sector Mode
+[hsmmc_init] MMC card is detected
+Product Name : VYL00M
+<display_card_info:1009> ext_csd
+<display_card_info:1011>card_size: 15028
+ Total Card Size: 15029 MByte
+
+mmc_init: card initialization completed!
+pbl found bootable sbl in #49152.
+jump to sbl 0x4d400000.
+Coader v3.1 version.
+Copyright (C) 2011 System S/W Group. Samsung Electronics Co., Ltd.
+Board: C1 REV 02 / Nov 28 2012 18:41:52
+current time: cb/15/4 3f:76:4e
+
+booting code=0xc0c0c0c0
+[set_mmc_ocr] Sector Mode
+[hsmmc_init] MMC card is detected
+Product Name : VYL00M
+CID:150100 56594c30 304d1908 66024b11
+<display_card_info:1045> ext_csd
+<display_card_info:1047>card_size: 15028
+ Total Card Size: 15029 MByte
+
+ Total Sector Count: 30777344
+
+MoviNand Initialization Complete!
+===== PARTITION INFORMATION =====
+ ID         : GANG (0x0)
+ DEVICE     : MMC
+ FIRST UNIT : 0
+ NO. UNITS  : 0
+=================================
+ ID         : BOOT (0x1)
+ DEVICE     : MMC
+ FIRST UNIT : 0
+ NO. UNITS  : 0
+=================================
+ ID         : EFS (0x4)
+ DEVICE     : MMC
+ FIRST UNIT : 8192
+ NO. UNITS  : 40960
+=================================
+ ID         : SBL1 (0x2)
+ DEVICE     : MMC
+ FIRST UNIT : 49152
+ NO. UNITS  : 2560
+=================================
+ ID         : SBL2 (0x3)
+ DEVICE     : MMC
+ FIRST UNIT : 53248
+ NO. UNITS  : 2560
+=================================
+ ID         : PARAM (0x5)
+ DEVICE     : MMC
+ FIRST UNIT : 57344
+ NO. UNITS  : 16384
+=================================
+ ID         : KERNEL (0x6)
+ DEVICE     : MMC
+ FIRST UNIT : 73728
+ NO. UNITS  : 16384
+=================================
+ ID         : RECOVERY (0x7)
+ DEVICE     : MMC
+ FIRST UNIT : 90112
+ NO. UNITS  : 16384
+=================================
+ ID         : CACHE (0x8)
+ DEVICE     : MMC
+ FIRST UNIT : 106496
+ NO. UNITS  : 512000
+=================================
+ ID         : MODEM (0x9)
+ DEVICE     : MMC
+ FIRST UNIT : 618496
+ NO. UNITS  : 32768
+=================================
+ ID         : FACTORYFS (0xa)
+ DEVICE     : MMC
+ FIRST UNIT : 651264
+ NO. UNITS  : 1048576
+=================================
+ ID         : DATAFS (0xb)
+ DEVICE     : MMC
+ FIRST UNIT : 1699840
+ NO. UNITS  : 4194304
+=================================
+ ID         : UMS (0xc)
+ DEVICE     : MMC
+ FIRST UNIT : 5894144
+ NO. UNITS  : 23826432
+=================================
+ ID         : HIDDEN (0xd)
+ DEVICE     : MMC
+ FIRST UNIT : 29720576
+ NO. UNITS  : 1048576
+=================================
+loke_init: j4fs_open..success
+<start_checksum:1026>CHECKSUM_HEADER_SECTOR :42
+<start_checksum:1028>offset:42, size:1024
+Not Need Movinand Checksum
+load_lfs_parameters valid magic code and version.
+switch_sel_str='1'
+load_debug_level: read debug level successfully(0x574f4c44)...LOW
+init_ddi_data: usable ddi data.
+fuelgauge_implementaion - start
+fuelgauge_implementaion - end
+fuel_gauge_get_version: [1]=0, [0]=92
+init_fuel_gauge: vcell = 3913 mV, vfocv = 4001 mV, soc = 80 
+microusb_get_attached_device: STATUS1:0x3f, 2:0x0
+microusb_get_attached_device: STATUS1:0x3f, 2:0x0
+7220 = (389300 - 337808)*14022/100000
+[2] 395178 = (7220 * 100000) / 16565 + 351593
+init_microusb_ic: MUIC: CONTROL1:0x0
+init_microusb_ic: MUIC: CONTROL1:0x0
+init_microusb_ic: MUIC: CONTROL2:0x3a
+init_microusb_ic: MUIC: CONTROL2:0x3a
+reading nps status file is successfully!.
+nps status=0x504d4f43
+PMIC_IRQSRC  = 0x0 
+PMIC_IRQ1    = 0x0 
+PMIC_IRQ2    = 0x1c 
+PMIC_IRQ3    = 0x0 
+PMIC_IRQ4    = 0x19 
+PMIC_STATUS1 = 0x0 
+PMIC_STATUS2 = 0x16 
+PMIC_STATUS3 = 0x0 
+PMIC_STATUS4 = 0x0 
+bootloader base address=0x4d400000
+LPDDR0 1st. cached=0x40000000, size=0xe400000
+LPDDR0 non-cached=0x4e400000, size=0xa00000
+LPDDR0 2nd. cached=0x4ee00000, size=0x1200000
+RST_STAT = 0x10000
+get_hwrev() = 14
+board_process_platform: MAGIC c0c0c0c0 at 40000000!
+scan_keypad_level: pressed key is 0
+scan_keypad_level: pressed key is 1
+scan_keypad_level: pressed key is 2
+scan_keypad_level: pressed key is 0
+scan_keypad_level: pressed key is 1
+scan_keypad_level: pressed key is 2
+scan_keypad_level: pressed key is 0
+scan_keypad_level: pressed key is 1
+scan_keypad_level: pressed key is 2
+scan_keypad_level: pressed key is 0
+scan_keypad_level: pressed key is 1
+scan_keypad_level: pressed key is 2
+scan_keypad_level: pressed key is 0
+scan_keypad_level: pressed key is 1
+scan_keypad_level: pressed key is 2
+keypad_scan: name=recovery mode
+set_reboot_mode_recovery: oneshot recovery mode set
+microusb_get_attached_device: STATUS1:0x3f, 2:0x0
+microusb_get_attached_device: STATUS1:0x3f, 2:0x0
+microusb_get_attached_device: STATUS1:0x3f, 2:0x0
+microusb_get_attached_device: STATUS1:0x3f, 2:0x0
+hw_pm_status: jig_status = 0, chg_status = 0
+s5p_set_high_clk: ARM Clock = 800MHz.
+DISPLAY_PATH_SEL[MDNIE 0x1]is on
+div:2, FB_SOURCE_CLOCK:667000000, FB_PIXEL_CLOCK:25067520
+MDNIE setting Init start!!
+vsync interrupt is off
+video interrupt is off
+[fb0] turn on
+MDNIE setting Init end!!
+
+Autoboot (0 seconds) in progress, press any key to stop 
+boot_kernel: debug level low!
+Jump to recovery partition.
+......kernel (id 0) is non signed binary.
+ATAG_CORE: 5 54410001 0 0 0
+MEMCONFIG: 20e01323 20e01323
+ATAG_MEM: 4 54410002 10000000 40000000
+ATAG_MEM: 4 54410002 10000000 50000000
+ATAG_MEM: 4 54410002 10000000 60000000
+ATAG_MEM: 4 54410002 10000000 70000000
+ATAG_SERIAL: 4 54410006 66024b11 304d1908
+ATAG_REVISION: 3 54410007 e
+ATAG_CMDLINE: 39 54410009 'loglevel=4 console=ram bootmode=2 sec_debug.enable=0 sec_debug.enable_user=0 c1_watchdog.sec_pet=5 sec_log=0x100000@0x5ea00000 s3cfb.bootloaderfb=0x5ec00000 ld9040.get_lcdtype=0x2 consoleblank=0 lpj=3981312 vmalloc=144m'
+ATAG_NONE: 0 0
+
+Starting kernel at 0x40008000...
+

@@ -79,5 +79,5 @@ GTAGS
 
 *.orig
 *~
-usr/initramfs/ramdisk/*
+usr/initramfs/ramdisk
 \#*#

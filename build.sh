@@ -49,7 +49,7 @@ echo "Building Modules..."
 
 echo "Building CWM Kernel..."
 		cd ${KERNEL_DIR}
-		make -j8 ARCH=arm CROSS_COMPILE=${TOOLCHAIN} CONFIG_INITRAMFS_SOURCE=${KK_CWM_INITRAMFS_SOURCE}
+		make -j8 ARCH=arm CROSS_COMPILE=${TOOLCHAIN}
 		cp arch/arm/boot/zImage ${OUTDIR}
 		cd ${OUTDIR}
 		echo "Creating Shift CWM kernel zip..."

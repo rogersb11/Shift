@@ -254,9 +254,18 @@ static void input_handle_event(struct input_dev *dev,
                    if (code == KEY_POWER && value == 1)
                        {
                            pr_info("KEY_POWER pressed\n");
-
-                           powerkey_press();
                        }
+#endif
+
+#ifdef CONFIG_TOUCH_WAKE
+            if (code == KEY_POWER && !device_is_suspended()) {
+                if (value == 1) {
+                    powerkey_pressed();
+                }
+                else if (value == 0) {
+                    powerkey_released();
+                }
+            }
 #endif
 
 			if (value != 2) {

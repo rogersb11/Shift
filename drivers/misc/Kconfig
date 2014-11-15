@@ -740,4 +740,10 @@ config CPU_UNDERVOLTING
         tristate "Several undervolting interfaces"
         default y
 
+config TOUCH_WAKE
+  bool "Support for Touch Wake"
+  default y
+  help
+    Say Y here to enable Touch Wake
+
 endif # MISC_DEVICES

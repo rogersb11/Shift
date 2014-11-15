@@ -33,6 +33,10 @@
 #include <linux/miscdevice.h>
 #endif
 
+#ifdef CONFIG_TOUCH_WAKE
+#include <linux/touch_wake.h>
+#endif
+
 #define OBJECT_TABLE_START_ADDRESS	7
 #define OBJECT_TABLE_ELEMENT_SIZE	6
 
@@ -2200,6 +2204,14 @@ static void reset_gestures_detection(bool including_detected)
 
 static void mxt224_early_suspend(struct early_suspend *h)
 {
+#ifndef CONFIG_TOUCH_WAKE
+	   struct mxt224_data *data;
+	   info = container_of(h, struct mxt224_data, early_suspend);
+	   mxt224_suspend(&data->client->dev);
+}
+#endif
+#endif
+
 	struct mxt224_data *data = container_of(h, struct mxt224_data,
 						early_suspend);
 
@@ -2221,6 +2233,11 @@ static void mxt224_early_suspend(struct early_suspend *h)
 
 static void mxt224_late_resume(struct early_suspend *h)
 {
+#ifndef CONFIG_TOUCH_WAKE
+		struct mxt224_data *data;
+		data = container_of(h, struct mxt224_data, early_suspend);
+		mxt224_resume(&data->client->dev);
+#endif
 	struct mxt224_data *data = container_of(h, struct mxt224_data,
 						early_suspend);
 	bool ta_status = 0;
@@ -2244,41 +2261,6 @@ static void mxt224_late_resume(struct early_suspend *h)
 	}
 	calibrate_chip();
 }
-#else
-static int mxt224_suspend(struct device *dev)
-{
-	struct i2c_client *client = to_i2c_client(dev);
-	struct mxt224_data *data = i2c_get_clientdata(client);
-
-#ifdef CONFIG_TOUCHSCREEN_GESTURES
-	reset_gestures_detection(false);
-#endif
-
-	copy_data->mxt224_enabled = 0;
-	touch_is_pressed = 0;
-	/* Doing_calibration_falg = 0; */
-	return mxt224_internal_suspend(data);
-}
-
-static int mxt224_resume(struct device *dev)
-{
-	int ret = 0;
-	bool ta_status = 0;
-	struct i2c_client *client = to_i2c_client(dev);
-	struct mxt224_data *data = i2c_get_clientdata(client);
-
-	ret = mxt224_internal_resume(data);
-
-	copy_data->mxt224_enabled = 1;
-
-	if (data->read_ta_status) {
-		data->read_ta_status(&ta_status);
-		printk(KERN_ERR "[TSP] ta_status is %d", ta_status);
-		mxt224_ta_probe(ta_status);
-	}
-	return ret;
-}
-#endif
 
 void Mxt224_force_released(void)
 {
@@ -3510,6 +3492,12 @@ static int sec_touchscreen_open(struct input_dev *dev)
 	}
 
 	return ret;
+#ifndef CONFIG_TOUCH_WAKE    
+	struct mxt224_data *data = container_of(h, struct mxt224_data,
+								early_suspend);
+	mxt224_internal_resume(data);
+	enable_irq(data->client->irq);
+#endif
 }
 
 static void sec_touchscreen_close(struct input_dev *dev)
@@ -3805,6 +3793,7 @@ static struct miscdevice gestures_device = {
 };
 static bool gestures_device_registered = false;
 #endif
+
 
 static int __devinit mxt224_probe(struct i2c_client *client,
 				  const struct i2c_device_id *id)
@@ -4261,7 +4250,6 @@ static int __devinit mxt224_probe(struct i2c_client *client,
 	data->early_suspend.resume = mxt224_late_resume;
 	register_early_suspend(&data->early_suspend);
 #endif
-
 
 	return 0;
 

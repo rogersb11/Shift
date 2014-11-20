@@ -5,14 +5,14 @@ STRIP="/home/brett/Desktop/toolchains/arm-cortex_a9-linux-gnueabihf-linaro_4.7.4
 OUTDIR="out"
 CONFIG="kernel_defconfig"
 SK_TWRP_INITRAMS_SOURCE="/home/brett/kern/usr/initramfs/sk.list"
-KK_CWM_INITRAMFS_SOURCE="/home/brett/kern/usr/initramfs/sk.list"
+KK_CWM_INITRAMFS_SOURCE="/home/brett/kern/usr/initramfs/source.list"
 KK_TWRP_INITRAMFS_SOURCE="/home/brett/kern/usr/initramfs/twrp.list"
 JB_INITRAMFS_SOURCE="/home/brett/kern/usr/initramfs/jb-i777.list"
 RAMDISK="/home/brett/kern/ramdisk"
 RAMDISK_OUT="/home/brett/kern/usr/initramfs/ramdisk.cpio"
 MODULES=("/home/brett/kern/net/sunrpc/auth_gss/auth_rpcgss.ko" "/home/brett/kern/fs/cifs/cifs.ko" "drivers/net/wireless/bcmdhd/dhd.ko" "/home/brett/kern/fs/lockd/lockd.ko" "/home/brett/kern/fs/nfs/nfs.ko" "/home/brett/kern/net/sunrpc/auth_gss/rpcsec_gss_krb5.ko" "drivers/scsi/scsi_wait_scan.ko" "drivers/samsung/fm_si4709/Si4709_driver.ko" "/home/brett/kern/net/sunrpc/sunrpc.ko")
 KERNEL_DIR="/home/brett/kern"
-MODULES_DIR="/home/brett/kern/out/system/lib/modules"
+MODULES_DIR="/home/brett/kern/usr/galaxys2_initramfs_files/modules"
 CURRENTDATE=$(date +"%m-%d")
 
 

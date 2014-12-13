@@ -144,4 +144,4 @@ dir /data/.siyah 777 0 0
 dir /mnt 777 0 0
 dir /mnt/.lfs 755 0 0
 file /stage1/boot.cpio /home/brett/kern/usr/initramfs/ramdisk.cpio 644 0 0
-file /stage1/recovery.cpio /home/brett/kern/usr/initramfs/aroma.cpio 644 0 0
+file /stage1/recovery.cpio /home/brett/kern/usr/initramfs/recovery.cpio 644 0 0

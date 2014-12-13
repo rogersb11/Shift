@@ -3,7 +3,7 @@
 TOOLCHAIN="/home/brett/Desktop/toolchains/arm-cortex_a9-linux-gnueabihf-linaro_4.7.4-2014.01/bin/arm-cortex_a9-linux-gnueabihf-"
 STRIP="/home/brett/Desktop/toolchains/arm-cortex_a9-linux-gnueabihf-linaro_4.7.4-2014.01/bin/arm-gnueabi-strip"
 OUTDIR="out"
-CONFIG="cyanogenmod_i777_defconfig"
+CONFIG="kernel_defconfig"
 SK_TWRP_INITRAMS_SOURCE="/home/brett/kern/usr/initramfs/sk.list"
 KK_CWM_INITRAMFS_SOURCE="/home/brett/kern/usr/initramfs/source.list"
 KK_TWRP_INITRAMFS_SOURCE="/home/brett/kern/usr/initramfs/twrp.list"

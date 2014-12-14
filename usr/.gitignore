@@ -8,6 +8,9 @@ initramfs_data.cpio.bz2
 initramfs_data.cpio.lzma
 initramfs_list
 include
+initramfs/ignored*
+initramfs/ramdisk*
+
 
 #
 # Exceptions

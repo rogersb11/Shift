@@ -10,6 +10,7 @@
 
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/cpu_pm.h>
 #include <linux/cpuidle.h>
 #include <linux/io.h>
 #include <linux/suspend.h>
@@ -919,6 +920,7 @@ static int exynos4_enter_lowpower(struct cpuidle_device *dev,
 	if (!enter_mode)
 		return exynos4_enter_idle(dev, new_state);
 	else {
+		cpu_pm_enter();
 #ifdef CONFIG_CORESIGHT_ETM
 		etm_disable(0);
 #endif
@@ -929,6 +931,7 @@ static int exynos4_enter_lowpower(struct cpuidle_device *dev,
 #ifdef CONFIG_CORESIGHT_ETM
 		etm_enable(0);
 #endif
+		cpu_pm_exit();
 	}
 
 	return ret;

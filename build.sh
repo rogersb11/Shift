@@ -1,18 +1,18 @@
 #!/bin/bash
 
-TOOLCHAIN="/home/brett/Desktop/toolchains/arm-cortex_a9-linux-gnueabihf-linaro_4.7.4-2014.01/bin/arm-cortex_a9-linux-gnueabihf-"
-STRIP="/home/brett/Desktop/toolchains/arm-cortex_a9-linux-gnueabihf-linaro_4.7.4-2014.01/bin/arm-gnueabi-strip"
+TOOLCHAIN="/home/rogersb11/Desktop/toolchains/linaro-4.9.3/bin/arm-eabi-"
+STRIP="/home/rogersb11/Desktop/toolchains/linaro-4.9.3/bin/arm-eabi-strip"
 OUTDIR="out"
 CONFIG="kernel_defconfig"
-SK_TWRP_INITRAMS_SOURCE="/home/brett/kern/usr/initramfs/sk.list"
-KK_CWM_INITRAMFS_SOURCE="/home/brett/kern/usr/initramfs/source.list"
-KK_TWRP_INITRAMFS_SOURCE="/home/brett/kern/usr/initramfs/twrp.list"
-JB_INITRAMFS_SOURCE="/home/brett/kern/usr/initramfs/jb-i777.list"
-RAMDISK="/home/brett/kern/ramdisk"
-RAMDISK_OUT="/home/brett/kern/usr/initramfs/ramdisk.cpio"
-MODULES=("/home/brett/kern/net/sunrpc/auth_gss/auth_rpcgss.ko" "/home/brett/kern/fs/cifs/cifs.ko" "drivers/net/wireless/bcmdhd/dhd.ko" "/home/brett/kern/fs/lockd/lockd.ko" "/home/brett/kern/fs/nfs/nfs.ko" "/home/brett/kern/net/sunrpc/auth_gss/rpcsec_gss_krb5.ko" "drivers/scsi/scsi_wait_scan.ko" "drivers/samsung/fm_si4709/Si4709_driver.ko" "/home/brett/kern/net/sunrpc/sunrpc.ko")
-KERNEL_DIR="/home/brett/kern"
-MODULES_DIR="/home/brett/kern/usr/galaxys2_initramfs_files/modules"
+SK_TWRP_INITRAMS_SOURCE="/home/rogersb11/ShiftS2/usr/initramfs/sk.list"
+KK_CWM_INITRAMFS_SOURCE="/home/rogersb11/ShiftS2/usr/initramfs/source.list"
+KK_TWRP_INITRAMFS_SOURCE="/home/rogersb11/ShiftS2/usr/initramfs/twrp.list"
+JB_INITRAMFS_SOURCE="/home/rogersb11/ShiftS2/usr/initramfs/jb-i777.list"
+RAMDISK="/home/rogersb11/ShiftS2/ramdisk"
+RAMDISK_OUT="/home/rogersb11/ShiftS2/usr/initramfs/ramdisk.cpio"
+MODULES=("/home/rogersb11/ShiftS2/net/sunrpc/auth_gss/auth_rpcgss.ko" "/home/rogersb11/ShiftS2/fs/cifs/cifs.ko" "drivers/net/wireless/bcmdhd/dhd.ko" "/home/rogersb11/ShiftS2/fs/lockd/lockd.ko" "/home/rogersb11/ShiftS2/fs/nfs/nfs.ko" "/home/rogersb11/ShiftS2/net/sunrpc/auth_gss/rpcsec_gss_krb5.ko" "drivers/scsi/scsi_wait_scan.ko" "drivers/samsung/fm_si4709/Si4709_driver.ko" "/home/rogersb11/ShiftS2/net/sunrpc/sunrpc.ko")
+KERNEL_DIR="/home/rogersb11/ShiftS2"
+MODULES_DIR="/home/rogersb11/ShiftS2/usr/galaxys2_initramfs_files/modules"
 CURRENTDATE=$(date +"%m-%d")
 
 
@@ -53,7 +53,7 @@ echo "Building CWM Kernel..."
 		cp arch/arm/boot/zImage ${OUTDIR}
 		cd ${OUTDIR}
 		echo "Creating Shift CWM kernel zip..."
-		zip -r Shift-ETERNAL.zip ./ -x *.zip *.gitignore
+		zip -r Shift-LP-5.1.zip ./ -x *.zip *.gitignore
 
 #echo "Building TWRP Kernel..."
 #		cd ${KERNEL_DIR}

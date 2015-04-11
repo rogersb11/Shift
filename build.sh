@@ -1,7 +1,7 @@
 #!/bin/bash
 
-TOOLCHAIN="/home/rogersb11/Desktop/toolchains/linaro-4.9.3/bin/arm-eabi-"
-STRIP="/home/rogersb11/Desktop/toolchains/linaro-4.9.3/bin/arm-eabi-strip"
+TOOLCHAIN="/home/rogersb11/Desktop/toolchains/linaro-4.7.4/bin/arm-cortex_a9-linux-gnueabihf-"
+STRIP="/home/rogersb11/Desktop/toolchains/linaro-4.7.4/bin/arm-cortex_a9-linux-gnueabihf-strip"
 OUTDIR="out"
 CONFIG="kernel_defconfig"
 SK_TWRP_INITRAMS_SOURCE="/home/rogersb11/ShiftS2/usr/initramfs/sk.list"
